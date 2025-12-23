@@ -8,17 +8,17 @@ This package contains everything needed for AI coding agents (Claude Code, Curso
    ```bash
    npm run dev
    ```
-   Open `http://localhost:1420/` in any browser. Feature components are lazily loaded to prevent crashes, and Tauri APIs are safely shimmed.
+   Open `http://localhost:1420/` in any browser. Feature components are lazily loaded to prevent crashes, and Electron APIs are safely shimmed.
 
-2. **Full Tauri Development**:
+2. **Full Electron Development**:
    ```bash
-   npm run tauri dev
+   npm run electron:dev
    ```
-   Launches the full desktop application with native API support.
+   Launches the Electron desktop application with native API support.
 
-3. **Installers**:
+3. **Production Build**:
    ```bash
-   npm run tauri build
+   npm run electron:build
    ```
 
 ## File Purposes
@@ -101,7 +101,7 @@ The TD (Technical Design) documents should be converted to simpler docs:
 ### Starting the project
 ```
 Set up the ChangeoverOptimizer project following CLAUDE.md tech stack.
-Create the Electron + Vite + React + TypeScript scaffold.
+Use the existing Electron + Vite + React + TypeScript setup.
 ```
 
 ### Building a feature

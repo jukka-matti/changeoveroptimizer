@@ -14,8 +14,8 @@ Production changeover sequence optimization for SME manufacturers.
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Framework | Tauri | 2.x |
-| Backend | Rust | 1.75+ |
+| Framework | Electron | 39.x |
+| Backend | Node.js + TypeScript | 5.x |
 | UI | React | 19.x |
 | Language | TypeScript | 5.x |
 | Styling | Tailwind CSS | 4.x |
@@ -26,7 +26,7 @@ Production changeover sequence optimization for SME manufacturers.
 | Payments | Paddle | API v2 |
 | Icons | Lucide React | Latest |
 
-**Why Tauri:** Smaller installer (~10MB vs 150MB), lower RAM usage, faster startup, security-first design. Uses system WebView2 (pre-installed on Windows 10/11).
+**Why Electron:** Mature ecosystem, excellent tooling, bundled Chromium ensures consistency across platforms, extensive community support, and seamless Node.js integration for backend operations.
 
 ## Project Structure
 
@@ -46,14 +46,17 @@ changeoveroptimizer/
 │   ├── hooks/                # Custom React hooks
 │   ├── lib/                  # Utilities
 │   └── i18n/                 # Translations
-├── src-tauri/                # Rust backend
-│   ├── src/
-│   │   ├── main.rs           # Tauri entry
-│   │   ├── commands.rs       # IPC commands
-│   │   └── services/         # File I/O, license
-│   ├── Cargo.toml            # Rust dependencies
-│   ├── tauri.conf.json       # Tauri config
-│   └── capabilities/         # Permission configs
+├── src-electron/             # TypeScript backend (main process)
+│   ├── main.ts               # Electron entry point
+│   ├── preload.ts            # Security bridge (contextBridge)
+│   ├── ipc-handlers.ts       # IPC command handlers
+│   ├── storage.ts            # Template storage
+│   ├── window-state.ts       # Window persistence
+│   └── types.ts              # TypeScript interfaces
+├── forge.config.ts           # Electron Forge config
+├── tsconfig.electron.json    # TypeScript config
+├── vite.main.config.ts       # Vite config for main
+├── vite.preload.config.ts    # Vite config for preload
 ├── docs/                     # Detailed specs
 └── public/                   # Static assets
 ```
@@ -212,13 +215,12 @@ Test files: `*.test.ts` or `*.spec.ts` next to source files.
 ## Build Commands
 
 ```bash
-npm run dev         # Start frontend in browser (shimmed Tauri APIs)
-npm run tauri dev   # Start Tauri in development (native APIs)
-npm run build       # Build production frontend
-npm run tauri build # Create installers (.msi, .dmg, .deb)
-npm run lint        # ESLint
-npm run typecheck   # TypeScript check
-cargo test          # Rust unit tests (in src-tauri/)
+npm run dev            # Start frontend in browser (shimmed Electron APIs)
+npm run electron:dev   # Start Electron in development (native APIs)
+npm run build          # Build production frontend
+npm run electron:build # Create installers (.exe, .dmg, .deb)
+npm run lint           # ESLint
+npm run typecheck      # TypeScript check
 ```
 
 ## Business Rules
@@ -258,12 +260,12 @@ Detailed specs in `/docs`:
 2. Otherwise create in `src/components/ui/`
 3. Follow existing patterns
 
-### Add a Tauri command (backend)
+### Add an Electron IPC handler (backend)
 
-1. Add function in `src-tauri/src/commands.rs`
-2. Register in `main.rs` builder
-3. Add to capabilities if needed
-4. Call from frontend via `@tauri-apps/api`
+1. Add handler in `src-electron/ipc-handlers.ts`
+2. Register in `main.ts` via `ipcMain.handle()`
+3. Add channel to preload whitelist in `preload.ts`
+4. Call from frontend via `window.electron.invoke()`
 
 ### Modify the optimizer
 

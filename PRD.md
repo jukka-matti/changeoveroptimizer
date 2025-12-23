@@ -431,7 +431,7 @@ ChangeoverOptimizer is a desktop application that optimizes production changeove
 
 ## Open Questions
 
-1. ~~Should we use Electron or Tauri?~~ **Decided: Tauri** (smaller, faster, security-first)
+1. ~~Should we use Electron or Tauri?~~ **Decided: Electron** (mature ecosystem, better tooling)
 2. ~~What's the free tier limit?~~ **Decided: 50 orders, 3 attributes**
 3. ~~Trial period?~~ **Decided: No trial, free tier IS the trial**
 4. ~~Refund policy?~~ **Decided: No refunds, cancel anytime**

@@ -1,15 +1,15 @@
 # TD-06: Build & Distribution
 
-**Tauri 2.x Packaging, Signing, and Auto-Updates**
+**Electron Forge Packaging, Signing, and Auto-Updates**
 
 ---
 
 ## Purpose
 
-This document specifies how ChangeoverOptimizer is built, signed, and distributed for Windows, macOS, and Linux using Tauri 2.x. It covers:
-- Build configuration (Tauri CLI)
+This document specifies how ChangeoverOptimizer is built, signed, and distributed for Windows, macOS, and Linux using Electron Forge. It covers:
+- Build configuration (Electron Forge)
 - Code signing (Windows & macOS)
-- Auto-updates (tauri-plugin-updater)
+- Auto-updates (electron-updater)
 - CI/CD pipeline (GitHub Actions)
 - Distribution channels
 
@@ -17,15 +17,15 @@ This document specifies how ChangeoverOptimizer is built, signed, and distribute
 
 ## Platform Targets
 
-| Platform | Format | Min Version | Architecture | WebView |
-|----------|--------|-------------|--------------|---------|
-| Windows | .exe (NSIS), .msi | Windows 10 | x64 | WebView2 (pre-installed) |
-| macOS | .dmg, .app | macOS 11 (Big Sur) | x64 + arm64 (Universal) | WebKit |
-| Linux | .AppImage, .deb | Ubuntu 22.04+ | x64 | WebKitGTK |
+| Platform | Format | Min Version | Architecture | Renderer |
+|----------|--------|-------------|--------------|----------|
+| Windows | .exe (Squirrel), .zip | Windows 10 | x64 | Chromium (bundled) |
+| macOS | .dmg, .app | macOS 11 (Big Sur) | x64 + arm64 (Universal) | Chromium (bundled) |
+| Linux | .deb, .rpm, .zip | Ubuntu 22.04+ | x64 | Chromium (bundled) |
 
-### WebView2 on Windows
+### Chromium Bundling
 
-Windows 10 21H2+ and Windows 11 have WebView2 pre-installed. For older systems, our installer automatically downloads the WebView2 bootstrapper (~1.8 MB).
+Electron bundles Chromium, ensuring consistent rendering across all platforms. The installer size is larger (~100MB) but provides guaranteed compatibility.
 
 ---
 
@@ -33,40 +33,32 @@ Windows 10 21H2+ and Windows 11 have WebView2 pre-installed. For older systems, 
 
 ```
 changeoveroptimizer/
-├── src-tauri/                    # Rust backend
-│   ├── Cargo.toml                # Rust dependencies
-│   ├── Cargo.lock
-│   ├── tauri.conf.json           # Main Tauri config
-│   ├── capabilities/
-│   │   └── main.json             # Permissions
-│   ├── src/
-│   │   ├── main.rs               # Entry point
-│   │   ├── lib.rs                # Library exports
-│   │   ├── commands.rs           # Tauri commands
-│   │   └── ...
-│   ├── icons/                    # App icons (all sizes)
-│   │   ├── 32x32.png
-│   │   ├── 128x128.png
-│   │   ├── 128x128@2x.png
-│   │   ├── icon.icns             # macOS
-│   │   ├── icon.ico              # Windows
-│   │   └── icon.png              # Linux (512x512)
-│   └── resources/
-│       └── sample-data.json
+├── src-electron/                 # TypeScript backend (main process)
+│   ├── main.ts                   # Entry point
+│   ├── preload.ts                # Security bridge
+│   ├── ipc-handlers.ts           # IPC handlers
+│   ├── storage.ts                # Template storage
+│   ├── window-state.ts           # Window state
+│   └── types.ts                  # TypeScript interfaces
+├── forge.config.ts               # Electron Forge config
+├── tsconfig.electron.json        # TypeScript config (main)
+├── vite.main.config.ts           # Vite config (main)
+├── vite.preload.config.ts        # Vite config (preload)
 ├── src/                          # React frontend
 │   ├── main.tsx
 │   └── ...
 ├── public/
-├── dist/                         # Vite build output
-├── target/                       # Rust build output
-│   └── release/
-│       └── bundle/               # Final installers
-│           ├── nsis/             # Windows .exe
-│           ├── msi/              # Windows .msi
-│           ├── dmg/              # macOS .dmg
-│           ├── macos/            # macOS .app
-│           ├── deb/              # Linux .deb
-│           └── appimage/         # Linux .AppImage
+├── dist/                         # Vite build output (renderer)
+├── out/                          # Electron Forge build output
+│   └── make/                     # Final installers
+│       ├── squirrel.windows/     # Windows .exe
+│       ├── zip/                  # .zip archives
+│       ├── dmg/                  # macOS .dmg
+│       ├── deb/                  # Linux .deb
+│       └── rpm/                  # Linux .rpm
+├── .vite/                        # Vite build cache
+│   ├── build/                    # Built main/preload
+│   └── dev-dist/                 # Dev build
 ├── index.html
 ├── package.json
 ├── vite.config.ts
@@ -139,48 +131,64 @@ changeoveroptimizer/
 }
 ```
 
-### Cargo.toml
+### forge.config.ts
 
-```toml
-# src-tauri/Cargo.toml
+```typescript
+// forge.config.ts
 
-[package]
-name = "changeoveroptimizer"
-version = "1.0.0"
-description = "Optimize production schedules to minimize changeover time"
-authors = ["RDMAIC Oy"]
-edition = "2021"
-rust-version = "1.75"
+import type { ForgeConfig } from '@electron-forge/shared-types';
+import { VitePlugin } from '@electron-forge/plugin-vite';
+import { MakerSquirrel } from '@electron-forge/maker-squirrel';
+import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerDeb } from '@electron-forge/maker-deb';
 
-[lib]
-name = "changeoveroptimizer_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+const config: ForgeConfig = {
+  packagerConfig: {
+    name: 'ChangeoverOptimizer',
+    executableName: 'changeoveroptimizer',
+    appBundleId: 'com.changeoveroptimizer.app',
+    asar: true,
+  },
+  rebuildConfig: {},
+  makers: [
+    new MakerSquirrel({
+      name: 'ChangeoverOptimizer',
+    }),
+    new MakerZIP({}, ['darwin']),
+    new MakerDMG({
+      name: 'ChangeoverOptimizer',
+    }),
+    new MakerDeb({
+      options: {
+        name: 'changeoveroptimizer',
+        productName: 'ChangeoverOptimizer',
+      },
+    }),
+  ],
+  plugins: [
+    new VitePlugin({
+      build: [
+        {
+          entry: 'src-electron/main.ts',
+          config: 'vite.main.config.ts',
+        },
+        {
+          entry: 'src-electron/preload.ts',
+          config: 'vite.preload.config.ts',
+        },
+      ],
+      renderer: [
+        {
+          name: 'main_window',
+          config: 'vite.config.ts',
+        },
+      ],
+    }),
+  ],
+};
 
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
-
-[dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
-tauri-plugin-store = "2"
-tauri-plugin-updater = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-reqwest = { version = "0.12", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-uuid = { version = "1", features = ["v4"] }
-dirs = "5"
-
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-updater = "2"
-
-[profile.release]
-panic = "abort"
-codegen-units = 1
-lto = true
-opt-level = "s"
-strip = true
+export default config;
 ```
 
 ---
@@ -854,8 +862,8 @@ jobs:
 ### Development
 
 ```bash
-# Start development server (frontend + Tauri)
-npm run tauri:dev
+# Start development server (frontend + Electron)
+npm run electron:dev
 
 # Frontend only
 npm run dev
@@ -865,28 +873,27 @@ npm run dev
 
 ```bash
 # Build for current platform
-npm run tauri:build
+npm run electron:build
 
-# Build with debug symbols
-npm run tauri:build:debug
+# Package without creating installers
+npm run electron:package
 
-# Build for specific target
-npm run tauri -- build --target x86_64-pc-windows-msvc
-npm run tauri -- build --target aarch64-apple-darwin
-npm run tauri -- build --target x86_64-apple-darwin
-npm run tauri -- build --target x86_64-unknown-linux-gnu
+# Build for specific platform (configure in forge.config.ts)
+npm run electron:build -- --platform darwin
+npm run electron:build -- --platform win32
+npm run electron:build -- --platform linux
 ```
 
 ### Output Locations
 
 | Platform | Format | Location |
 |----------|--------|----------|
-| Windows | .exe (NSIS) | `src-tauri/target/release/bundle/nsis/ChangeoverOptimizer_1.0.0_x64-setup.exe` |
-| Windows | .msi | `src-tauri/target/release/bundle/msi/ChangeoverOptimizer_1.0.0_x64_en-US.msi` |
-| macOS | .dmg | `src-tauri/target/release/bundle/dmg/ChangeoverOptimizer_1.0.0_x64.dmg` |
-| macOS | .app | `src-tauri/target/release/bundle/macos/ChangeoverOptimizer.app` |
-| Linux | .deb | `src-tauri/target/release/bundle/deb/changeoveroptimizer_1.0.0_amd64.deb` |
-| Linux | .AppImage | `src-tauri/target/release/bundle/appimage/changeoveroptimizer_1.0.0_amd64.AppImage` |
+| Windows | .exe (Squirrel) | `out/make/squirrel.windows/x64/ChangeoverOptimizer-1.0.0 Setup.exe` |
+| Windows | .zip | `out/make/zip/win32/x64/changeoveroptimizer-win32-x64-1.0.0.zip` |
+| macOS | .dmg | `out/make/ChangeoverOptimizer-1.0.0-arm64.dmg` |
+| macOS | .app | `out/ChangeoverOptimizer-darwin-universal/ChangeoverOptimizer.app` |
+| Linux | .deb | `out/make/deb/x64/changeoveroptimizer_1.0.0_amd64.deb` |
+| Linux | .rpm | `out/make/rpm/x64/changeoveroptimizer-1.0.0-1.x86_64.rpm` |
 
 ---
 

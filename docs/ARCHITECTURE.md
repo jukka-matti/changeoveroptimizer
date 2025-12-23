@@ -2,7 +2,7 @@
 
 **From UX Specification to Implementation**
 
-*Updated December 2025 — Tauri 2.x architecture*
+*Updated December 2025 — Electron architecture*
 
 ---
 
@@ -47,20 +47,18 @@ ChangeoverOptimizer is architected with a **web-first core** that can be deploye
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Why Tauri over Electron?
+### Why Electron?
 
-| Factor | Electron | Tauri 2.x | Decision |
-|--------|----------|-----------|----------|
-| App size | 100-150 MB | 5-15 MB | **Tauri** |
-| Memory (idle) | 150-300 MB | 30-50 MB | **Tauri** |
-| Startup time | 1-2 seconds | 0.3-0.5 seconds | **Tauri** |
-| Security | Manual hardening | Secure by default | **Tauri** |
-| Windows 10/11 | ✅ Bundled Chromium | ✅ WebView2 pre-installed | Tie |
-| Ecosystem | Mature (10+ years) | Growing rapidly | Electron |
-| Learning curve | JavaScript only | Minimal Rust | Electron |
-| Mobile support | ❌ No | ✅ iOS/Android | **Tauri** |
+| Factor | Benefit |
+|--------|---------|
+| **Mature Ecosystem** | 10+ years of production use, extensive libraries |
+| **Bundled Chromium** | Consistent rendering across all platforms |
+| **Node.js Integration** | Direct access to npm packages and filesystem |
+| **Tooling** | Excellent DevTools, debugging, profiling |
+| **Community** | Large community, extensive documentation |
+| **TypeScript Backend** | Unified language across frontend and backend |
 
-**Decision: Tauri** — Smaller installer, faster startup, and lower resource usage matter for SME manufacturers, especially in developing markets with slower internet and older hardware. WebView2 is pre-installed on Windows 10/11, eliminating the main compatibility concern.
+**Decision: Electron** — While the installer is larger (~100MB vs Tauri's ~10MB), Electron provides a mature, battle-tested ecosystem with seamless Node.js integration. The development experience is significantly smoother with TypeScript across the entire stack.
 
 ---
 
@@ -148,15 +146,15 @@ ChangeoverOptimizer is architected with a **web-first core** that can be deploye
 
 | Layer | Technology | Version | Rationale |
 |-------|------------|---------|-----------|
-| **Framework** | Tauri | 2.x | Small, fast, secure, WebView2-based |
-| **Backend** | Rust | 1.75+ | Native performance, memory safety |
+| **Framework** | Electron | 39.x | Mature, consistent, Chromium-based |
+| **Backend** | Node.js + TypeScript | 5.x | Unified language, npm ecosystem |
 | **UI Framework** | React | 19.x | Latest stable, hooks improvements |
 | **Language** | TypeScript | 5.x | Type safety, better DX |
 | **Styling** | Tailwind CSS | 4.x | OKLCH colors, CSS-first config, faster |
 | **Components** | shadcn/ui | Latest | Copy-paste ownership, Radix + Tailwind |
 | **State** | Zustand | 5.x | Simple, minimal boilerplate, performant |
-| **Build** | Vite | 6.x | Fast dev server, native Tauri support |
-| **Package** | Tauri CLI | 2.x | Multi-platform builds, auto-update |
+| **Build** | Vite | 6.x | Fast dev server, Electron integration |
+| **Package** | Electron Forge | 7.x | Multi-platform builds, auto-update |
 
 ### Libraries
 
@@ -189,138 +187,133 @@ ChangeoverOptimizer is architected with a **web-first core** that can be deploye
 | **Tailwind 4** | OKLCH colors (better perception), CSS-first config, Rust-based Oxide engine |
 | **shadcn/ui** | Components you own, not a dependency — modify freely |
 | **Zustand 5** | Simpler API, better TypeScript support |
-| **Tauri 2** | Mobile support, improved permissions, better plugins |
+| **Electron 39** | Latest stable, security updates, performance improvements |
 
 ---
 
 ## 3. Application Architecture
 
-### Tauri Process Model
+### Electron Process Model
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
-│   TAURI APPLICATION ARCHITECTURE                                            │
+│   ELECTRON APPLICATION ARCHITECTURE                                         │
 │   ─────────────────────────────────────────────────────────────────────────│
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │                                                                     │  │
-│   │   RUST CORE (Backend)                                               │  │
+│   │   MAIN PROCESS (Node.js + TypeScript)                              │  │
 │   │   ─────────────────────────────────────────────────────────────────│  │
 │   │                                                                     │  │
 │   │   Responsibilities:                                                 │  │
-│   │   • Window management                                               │  │
-│   │   • File system access (read/write files)                          │  │
-│   │   • Native dialogs (open, save)                                    │  │
+│   │   • Window management (BrowserWindow)                               │  │
+│   │   • File system access (Node.js fs)                                │  │
+│   │   • Native dialogs (dialog module)                                 │  │
 │   │   • Menu bar                                                        │  │
-│   │   • Auto-updater                                                    │  │
-│   │   • License validation (Paddle API)                                │  │
+│   │   • Auto-updater (electron-updater)                                │  │
+│   │   • IPC message handling                                           │  │
 │   │                                                                     │  │
 │   │   Key Modules:                                                      │  │
-│   │   ├── main.ts              Entry point                             │  │
-│   │   ├── window.ts            Window creation/management              │  │
+│   │   ├── main.ts              Entry point, window creation            │  │
+│   │   ├── preload.ts           Security bridge (contextBridge)         │  │
 │   │   ├── ipc-handlers.ts      IPC message handlers                    │  │
-│   │   ├── file-service.ts      File operations                         │  │
-│   │   ├── license-service.ts   License management                      │  │
-│   │   ├── update-service.ts    Auto-update logic                       │  │
-│   │   └── storage-service.ts   Settings/template persistence          │  │
+│   │   ├── storage.ts           Template management                     │  │
+│   │   └── window-state.ts      Window geometry persistence             │  │
 │   │                                                                     │  │
 │   └──────────────────────────────┬──────────────────────────────────────┘  │
 │                                  │                                          │
-│                                  │ invoke() / Tauri Commands                │
-│                                  │ Type-safe TypeScript bindings            │
+│                                  │ IPC (Inter-Process Communication)        │
+│                                  │ ipcMain ↔ ipcRenderer via contextBridge │
 │                                  │                                          │
 │   ┌──────────────────────────────▼──────────────────────────────────────┐  │
 │   │                                                                     │  │
-│   │   WEBVIEW (Frontend - React)                                        │  │
+│   │   RENDERER PROCESS (Chromium + React)                              │  │
 │   │   ─────────────────────────────────────────────────────────────────│  │
 │   │                                                                     │  │
 │   │   Responsibilities:                                                 │  │
 │   │   • UI rendering (React + shadcn/ui)                               │  │
 │   │   • State management (Zustand)                                     │  │
-│   │   • Optimization algorithm (runs in renderer for simplicity)       │  │
+│   │   • Optimization algorithm                                         │  │
 │   │   • i18n                                                            │  │
 │   │                                                                     │  │
 │   │   Key Modules:                                                      │  │
 │   │   ├── App.tsx              Root component                          │  │
 │   │   ├── screens/             Screen components                       │  │
-│   │   ├── components/          UI components (shadcn/ui + custom)      │  │
+│   │   ├── components/          UI components                           │  │
 │   │   ├── stores/              Zustand stores                          │  │
 │   │   ├── services/            Business logic                          │  │
 │   │   │   ├── optimizer.ts     Optimization algorithm                  │  │
 │   │   │   ├── parser.ts        Excel/CSV parsing                       │  │
 │   │   │   └── exporter.ts      Export generation                       │  │
-│   │   ├── hooks/               Custom React hooks                      │  │
-│   │   └── i18n/                Translations                            │  │
+│   │   └── lib/electron.ts      Electron API wrapper                    │  │
 │   │                                                                     │  │
 │   └─────────────────────────────────────────────────────────────────────┘  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Tauri Commands (IPC)
+### Electron IPC (Inter-Process Communication)
 
-Typed Rust commands exposed to frontend:
+IPC handlers in the main process, called from the renderer via contextBridge:
 
-```rust
-// src-tauri/src/commands.rs
+```typescript
+// src-electron/ipc-handlers.ts
 
-use tauri::command;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct Settings {
-    pub language: String,
-    pub theme: String,
-    pub telemetry_enabled: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Template {
-    pub id: String,
-    pub name: String,
-    pub attributes: Vec<AttributeConfig>,
-}
+import { ipcMain, IpcMainInvokeEvent, dialog, BrowserWindow } from 'electron';
+import fs from 'fs/promises';
 
 // File operations
-#[command]
-pub async fn read_file(path: String) -> Result<Vec<u8>, String> {
-    std::fs::read(&path).map_err(|e| e.to_string())
+export async function handleReadFile(
+  event: IpcMainInvokeEvent,
+  args: { path: string }
+): Promise<number[]> {
+  const buffer = await fs.readFile(args.path);
+  return Array.from(buffer);
 }
 
-#[command]
-pub async fn write_file(path: String, data: Vec<u8>) -> Result<(), String> {
-    std::fs::write(&path, data).map_err(|e| e.to_string())
+export async function handleWriteFile(
+  event: IpcMainInvokeEvent,
+  args: { path: string; data: number[] }
+): Promise<void> {
+  await fs.writeFile(args.path, Buffer.from(args.data));
 }
 
-// Settings
-#[command]
-pub fn get_settings() -> Result<Settings, String> {
-    load_settings_from_disk().map_err(|e| e.to_string())
+// Dialogs
+export async function handleOpenDialog(
+  event: IpcMainInvokeEvent,
+  args: { filters?: { name: string; extensions: string[] }[] }
+): Promise<string | null> {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
+
+  const result = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: args.filters,
+  });
+
+  return result.canceled ? null : result.filePaths[0];
 }
 
-#[command]
-pub fn save_settings(settings: Settings) -> Result<(), String> {
-    save_settings_to_disk(&settings).map_err(|e| e.to_string())
-}
+export async function handleSaveDialog(
+  event: IpcMainInvokeEvent,
+  args: { defaultPath?: string; filters?: { name: string; extensions: string[] }[] }
+): Promise<string | null> {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
 
-// Templates (Pro only)
-#[command]
-pub fn get_templates() -> Result<Vec<Template>, String> {
-    load_templates().map_err(|e| e.to_string())
-}
+  const result = await dialog.showSaveDialog(win, {
+    defaultPath: args.defaultPath,
+    filters: args.filters,
+  });
 
-// License
-#[command]
-pub async fn validate_license(key: String) -> Result<LicenseResult, String> {
-    validate_with_paddle(&key).await.map_err(|e| e.to_string())
+  return result.canceled ? null : result.filePath;
 }
 ```
 
 ```typescript
-// Frontend - calling Tauri commands
-import { invoke } from '@tauri-apps/api/core';
-import { open, save } from '@tauri-apps/plugin-dialog';
+// Frontend - calling Electron IPC
+import { invoke } from '@/lib/electron';
 
 interface Settings {
   language: string;
@@ -330,77 +323,98 @@ interface Settings {
 
 // File operations via dialog
 async function openFile(): Promise<{ path: string; data: Uint8Array } | null> {
-  const selected = await open({
+  const selected = await invoke<string | null>('open_dialog', {
     filters: [{ name: 'Spreadsheets', extensions: ['xlsx', 'csv'] }],
   });
+
   if (!selected) return null;
+
   const data = await invoke<number[]>('read_file', { path: selected });
   return { path: selected, data: new Uint8Array(data) };
 }
 
-// Settings
-async function loadSettings(): Promise<Settings> {
-  return await invoke('get_settings');
-}
+// Save file
+async function saveFile(data: Uint8Array, filename: string): Promise<string | null> {
+  const path = await invoke<string | null>('save_dialog', {
+    defaultPath: filename,
+    filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+  });
 
-async function saveSettings(settings: Settings): Promise<void> {
-  await invoke('save_settings', { settings });
-}
+  if (!path) return null;
 
-// License
-async function activateLicense(key: string): Promise<LicenseResult> {
-  return await invoke('validate_license', { key });
-}
-```
-
-### Tauri Security Configuration
-
-```json
-// src-tauri/tauri.conf.json
-{
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ChangeoverOptimizer",
-  "identifier": "com.changeoveroptimizer.app",
-  "version": "1.0.0",
-  "build": {
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "ChangeoverOptimizer",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600
-      }
-    ],
-    "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.paddle.com https://changeoveroptimizer.com"
-    }
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": ["https://changeoveroptimizer.com/api/updates/{{target}}/{{arch}}/{{current_version}}"]
-    }
-  }
+  await invoke('write_file', { path, data: Array.from(data) });
+  return path;
 }
 ```
 
-```json
-// src-tauri/capabilities/main.json - Permission-based security
-{
-  "identifier": "main",
-  "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "dialog:default",
-    "fs:read-files",
-    "fs:write-files",
-    "store:default",
-    "updater:default"
-  ]
+### Electron Security Configuration
+
+```typescript
+// src-electron/main.ts - Security settings
+
+import { app, BrowserWindow } from 'electron';
+
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    title: 'ChangeoverOptimizer',
+    webPreferences: {
+      // Security: Enable context isolation
+      contextIsolation: true,
+      // Security: Disable Node.js in renderer
+      nodeIntegration: false,
+      // Security: Use preload script
+      preload: path.join(__dirname, 'preload.js'),
+      // Performance: Enable sandbox
+      sandbox: true,
+    },
+  });
+
+  // Security: Set Content Security Policy
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.paddle.com https://changeoveroptimizer.com"
+        ],
+      },
+    });
+  });
+
+  return win;
 }
+```
+
+```typescript
+// src-electron/preload.ts - IPC channel whitelist
+
+import { contextBridge, ipcRenderer } from 'electron';
+
+// Whitelist of allowed IPC channels
+const validChannels = [
+  'greet',
+  'read_file',
+  'write_file',
+  'list_templates',
+  'save_template',
+  'delete_template',
+  'open_dialog',
+  'save_dialog',
+];
+
+// Expose IPC to renderer via contextBridge
+contextBridge.exposeInMainWorld('electron', {
+  invoke: (channel: string, ...args: any[]) => {
+    if (validChannels.includes(channel)) {
+      return ipcRenderer.invoke(channel, ...args);
+    }
+    throw new Error(`Invalid IPC channel: ${channel}`);
+  },
+});
 ```
 
 ---
@@ -415,20 +429,17 @@ changeoveroptimizer/
 │   └── workflows/
 │       ├── ci.yml                 # Test on PR
 │       └── release.yml            # Build & publish
-├── src-tauri/                     # Rust backend
-│   ├── Cargo.toml                 # Rust dependencies
-│   ├── tauri.conf.json            # Tauri configuration
-│   ├── capabilities/
-│   │   └── main.json              # Permission config
-│   ├── src/
-│   │   ├── main.rs                # Entry point
-│   │   ├── lib.rs                 # Library exports
-│   │   ├── commands.rs            # Tauri commands
-│   │   ├── file_service.rs        # File operations
-│   │   ├── storage_service.rs     # Settings persistence
-│   │   ├── license_service.rs     # License management
-│   │   └── update_service.rs      # Auto-update logic
-│   └── icons/                     # App icons (all sizes)
+├── src-electron/                  # TypeScript backend (main process)
+│   ├── main.ts                    # Entry point
+│   ├── preload.ts                 # Security bridge (contextBridge)
+│   ├── ipc-handlers.ts            # IPC command handlers
+│   ├── storage.ts                 # Template management
+│   ├── window-state.ts            # Window geometry persistence
+│   └── types.ts                   # TypeScript interfaces
+├── forge.config.ts                # Electron Forge configuration
+├── tsconfig.electron.json         # TypeScript config for main
+├── vite.main.config.ts            # Vite config for main process
+├── vite.preload.config.ts         # Vite config for preload
 ├── src/                           # React frontend
 │   ├── main.tsx                   # React entry
 │   ├── App.tsx                    # Root component
@@ -497,11 +508,11 @@ changeoveroptimizer/
 │   │   └── globals.css            # Tailwind v4 imports
 │   ├── lib/
 │   │   ├── utils.ts               # cn() helper for shadcn
-│   │   └── tauri.ts               # Typed Tauri API wrappers
+│   │   └── electron.ts            # Typed Electron API wrappers
 │   └── types/
 │       ├── data.ts                # Data types
 │       ├── config.ts              # Configuration types
-│       └── api.ts                 # Tauri command types
+│       └── api.ts                 # Electron IPC types
 ├── public/
 │   └── sample-data.json           # Bundled sample dataset
 ├── tests/
