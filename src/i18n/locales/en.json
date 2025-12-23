@@ -1,0 +1,28 @@
+{
+  "welcome": {
+    "title": "ChangeoverOptimizer",
+    "subtitle": "Production changeover sequence optimization. Reduce setup times by 20-40% with smart sequencing.",
+    "import_card_title": "Import Data",
+    "import_card_desc": "Drop your Excel or CSV production schedule here.",
+    "sample_card_title": "Try Sample Data",
+    "sample_card_desc": "See how it works with a sample production schedule.",
+    "recent_files_title": "Recent Files",
+    "recent_files_desc": "Quickly reopen your previous schedules.",
+    "no_recent_files": "No recent files found."
+  },
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "pro": "PRO",
+    "upgrade": "Upgrade to Pro"
+  },
+  "header": {
+    "about": "About ChangeoverOptimizer",
+    "settings": "Settings"
+  }
+}
+
+

@@ -1,0 +1,42 @@
+# Cursor IDE Rules for ChangeoverOptimizer
+
+This file configures Cursor IDE behavior for the ChangeoverOptimizer project.
+
+## Primary Context File
+
+The main project context is in **CLAUDE.md**. Always read this file first for:
+- Tech stack decisions
+- Project structure
+- Core types
+- Coding standards
+- DO NOT list
+- Common tasks
+
+## Project Documentation
+
+Reference these documents when building features:
+- **PRD.md** - Product requirements and acceptance criteria
+- **docs/ARCHITECTURE.md** - Technical architecture
+- **docs/ALGORITHM.md** - Optimization algorithm details
+- **docs/DATA_MODEL.md** - Storage and state design
+- **docs/UI_COMPONENTS.md** - React component library
+- **docs/LICENSING.md** - Paddle integration
+- **docs/PHASES.md** - Development roadmap
+
+## Cursor-Specific Rules
+
+1. **Always check CLAUDE.md first** before making architectural decisions
+2. **Follow the coding standards** defined in CLAUDE.md
+3. **Use @-mentions** to reference specific documentation files
+4. **Respect the DO NOT list** in CLAUDE.md
+5. **Test changes** with `npm run test` before committing
+
+## Example Usage
+
+```
+@CLAUDE.md @PRD.md Build the file import service
+@docs/ALGORITHM.md Optimize the hierarchical grouping
+@docs/UI_COMPONENTS.md Create the FileDropzone component
+```
+
+
