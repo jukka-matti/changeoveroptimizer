@@ -14,6 +14,25 @@ contextBridge.exposeInMainWorld('electron', {
       'delete_template',
       'open_dialog',
       'save_dialog',
+      // SMED channels
+      'smed:get_all_studies',
+      'smed:get_study_by_id',
+      'smed:create_study',
+      'smed:update_study',
+      'smed:delete_study',
+      'smed:get_steps',
+      'smed:create_step',
+      'smed:update_step',
+      'smed:delete_step',
+      'smed:get_improvements',
+      'smed:create_improvement',
+      'smed:update_improvement',
+      'smed:get_standards',
+      'smed:get_active_standard',
+      'smed:create_standard',
+      'smed:get_logs',
+      'smed:create_log',
+      'smed:get_statistics',
     ];
 
     if (validChannels.includes(channel)) {

@@ -9,8 +9,28 @@ import {
   handleGreet,
   handleOpenDialog,
   handleSaveDialog,
+  // SMED handlers
+  handleGetAllStudies,
+  handleGetStudyById,
+  handleCreateStudy,
+  handleUpdateStudy,
+  handleDeleteStudy,
+  handleGetStepsByStudyId,
+  handleCreateStep,
+  handleUpdateStep,
+  handleDeleteStep,
+  handleGetImprovementsByStudyId,
+  handleCreateImprovement,
+  handleUpdateImprovement,
+  handleGetStandardsByStudyId,
+  handleGetActiveStandard,
+  handleCreateStandard,
+  handleGetLogsByStudyId,
+  handleCreateChangeoverLog,
+  handleGetStudyStatistics,
 } from './ipc-handlers';
 import { loadWindowState, saveWindowState } from './window-state';
+import { initDatabase, closeDatabase } from './db';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -107,6 +127,16 @@ function createWindow(): void {
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Initialize database FIRST
+  try {
+    initDatabase();
+    console.log('[Main] Database initialized');
+  } catch (error) {
+    console.error('[Main] Failed to initialize database:', error);
+    app.quit();
+    return;
+  }
+
   // Register IPC handlers
   ipcMain.handle('greet', handleGreet);
   ipcMain.handle('read_file', handleReadFile);
@@ -116,6 +146,26 @@ app.whenReady().then(() => {
   ipcMain.handle('delete_template', handleDeleteTemplate);
   ipcMain.handle('open_dialog', handleOpenDialog);
   ipcMain.handle('save_dialog', handleSaveDialog);
+
+  // SMED IPC handlers
+  ipcMain.handle('smed:get_all_studies', handleGetAllStudies);
+  ipcMain.handle('smed:get_study_by_id', handleGetStudyById);
+  ipcMain.handle('smed:create_study', handleCreateStudy);
+  ipcMain.handle('smed:update_study', handleUpdateStudy);
+  ipcMain.handle('smed:delete_study', handleDeleteStudy);
+  ipcMain.handle('smed:get_steps', handleGetStepsByStudyId);
+  ipcMain.handle('smed:create_step', handleCreateStep);
+  ipcMain.handle('smed:update_step', handleUpdateStep);
+  ipcMain.handle('smed:delete_step', handleDeleteStep);
+  ipcMain.handle('smed:get_improvements', handleGetImprovementsByStudyId);
+  ipcMain.handle('smed:create_improvement', handleCreateImprovement);
+  ipcMain.handle('smed:update_improvement', handleUpdateImprovement);
+  ipcMain.handle('smed:get_standards', handleGetStandardsByStudyId);
+  ipcMain.handle('smed:get_active_standard', handleGetActiveStandard);
+  ipcMain.handle('smed:create_standard', handleCreateStandard);
+  ipcMain.handle('smed:get_logs', handleGetLogsByStudyId);
+  ipcMain.handle('smed:create_log', handleCreateChangeoverLog);
+  ipcMain.handle('smed:get_statistics', handleGetStudyStatistics);
 
   createWindow();
 
@@ -128,6 +178,12 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    closeDatabase();
     app.quit();
   }
+});
+
+// Cleanup database on app quit
+app.on('before-quit', () => {
+  closeDatabase();
 });
