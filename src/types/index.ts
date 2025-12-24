@@ -6,7 +6,9 @@ export type Screen =
   | "optimizing"
   | "results"
   | "export"
-  | "settings";
+  | "settings"
+  | "smed"
+  | "timer";
 
 export interface Order {
   id: string;

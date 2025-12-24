@@ -8,7 +8,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { Settings, Home, Info, Github, Globe } from "lucide-react";
+import { Settings, Home, Info, Github, Globe, ClipboardList } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function Header() {
@@ -24,8 +24,19 @@ export function Header() {
             size="icon"
             onClick={() => navigateTo("welcome")}
             disabled={currentScreen === "welcome"}
+            title="Home"
           >
             <Home className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigateTo("smed")}
+            className={currentScreen === "smed" ? "bg-accent" : ""}
+            title="SMED Studies"
+          >
+            <ClipboardList className="h-4 w-4 mr-2" />
+            SMED
           </Button>
           <span className="font-bold text-fluid-xl tracking-tight">ChangeoverOptimizer</span>
         </div>

@@ -12,6 +12,8 @@ const ChangeoverConfigScreen = lazy(() => import("@/screens/ChangeoverConfigScre
 const ResultsScreen = lazy(() => import("@/screens/ResultsScreen").then(m => ({ default: m.ResultsScreen })));
 const ExportScreen = lazy(() => import("@/screens/ExportScreen").then(m => ({ default: m.ExportScreen })));
 const SettingsScreen = lazy(() => import("@/screens/SettingsScreen").then(m => ({ default: m.SettingsScreen })));
+const StudiesListScreen = lazy(() => import("@/screens/smed/StudiesListScreen").then(m => ({ default: m.StudiesListScreen })));
+const TimerScreen = lazy(() => import("@/screens/smed/TimerScreen").then(m => ({ default: m.TimerScreen })));
 
 function App() {
   const { currentScreen } = useAppStore();
@@ -40,6 +42,10 @@ function App() {
         return <ExportScreen />;
       case "settings":
         return <SettingsScreen />;
+      case "smed":
+        return <StudiesListScreen />;
+      case "timer":
+        return <TimerScreen onBack={() => useAppStore.getState().navigateTo('smed')} />;
       default:
         return <WelcomeScreen />;
     }
