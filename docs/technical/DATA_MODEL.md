@@ -63,6 +63,405 @@ This document specifies how ChangeoverOptimizer handles data:
 
 ---
 
+## Storage Architecture
+
+**ChangeoverOptimizer uses a hybrid storage approach:**
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Persistent Data** | SQLite (better-sqlite3) + Drizzle ORM | Products, orders, schedules, SMED studies, changeover configuration |
+| **Runtime State** | Zustand | UI state, current screen, loading status, optimization results |
+| **UI Preferences** | localStorage | Theme, language, window position |
+| **License** | Encrypted SQLite | License keys and validation status |
+
+### Why SQLite?
+
+1. **Relational Data**: Products, orders, and changeov relationships fit SQL model naturally
+2. **Performance**: Synchronous better-sqlite3 is faster than async filesystem operations
+3. **Queries**: Complex filtering, sorting, JOIN operations are simple with SQL
+4. **Single File**: Entire database in one file (~5-50 MB typical)
+5. **Backup**: Copy one file to backup entire application data
+6. **SMED Module**: Studies, steps, improvements require proper relational storage
+
+### Database Location
+
+```
+Windows:   C:\Users\{user}\AppData\Roaming\changeoveroptimizer\changeoveroptimizer.db
+macOS:     ~/Library/Application Support/changeoveroptimizer/changeoveroptimizer.db
+Linux:     ~/.config/changeoveroptimizer/changeoveroptimizer.db
+```
+
+### Data Flow with Database
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│   UPDATED DATA FLOW ARCHITECTURE (with SQLite)                             │
+│   ─────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│                                                                             │
+│   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                 │
+│   │             │     │             │     │             │                 │
+│   │  Excel/CSV  │────▶│   Parser    │────▶│   SQLite    │                 │
+│   │   (Input)   │     │  (SheetJS)  │     │  (persist)  │                 │
+│   │             │     │             │     │             │                 │
+│   └─────────────┘     └─────────────┘     └──────┬──────┘                 │
+│                                                   │                         │
+│                                                   ▼                         │
+│                                            ┌─────────────┐                 │
+│                                            │   Zustand   │                 │
+│                                            │   (state)   │                 │
+│                                            └──────┬──────┘                 │
+│                                                   │                         │
+│                                                   ▼                         │
+│                                            ┌─────────────┐                 │
+│                                            │  Optimizer  │                 │
+│                                            └──────┬──────┘                 │
+│                                                   │                         │
+│                                                   ▼                         │
+│   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                 │
+│   │             │     │             │     │             │                 │
+│   │  Excel/CSV  │◀────│  Exporter   │◀────│   SQLite    │                 │
+│   │    /PDF     │     │             │     │  (results)  │                 │
+│   │             │     │             │     │             │                 │
+│   └─────────────┘     └─────────────┘     └─────────────┘                 │
+│                                                                             │
+│                                                                             │
+│   PERSISTENT STORAGE (SQLite Database)                                     │
+│   ─────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
+│   │             │  │             │  │             │  │             │      │
+│   │  Products   │  │   Orders    │  │  Schedules  │  │    SMED     │      │
+│   │ Changeover  │  │  Templates  │  │  Settings   │  │   Studies   │      │
+│   │   Config    │  │   License   │  │  App State  │  │  Standards  │      │
+│   │             │  │             │  │             │  │             │      │
+│   └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Database Schema (SQLite + Drizzle ORM)
+
+### Entity Relationship Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                         ENTITY RELATIONSHIP DIAGRAM                        │
+│                                                                             │
+│  ┌─────────────┐         ┌─────────────┐         ┌─────────────┐          │
+│  │  products   │◄────────│   orders    │────────▶│  schedules  │          │
+│  └─────────────┘         └─────────────┘         └─────────────┘          │
+│         │                                               │                  │
+│         │                                               │                  │
+│         ▼                                               ▼                  │
+│  ┌─────────────┐         ┌─────────────┐         ┌─────────────┐          │
+│  │ product_    │         │ schedule_   │         │ changeover_ │          │
+│  │ attributes  │         │   items     │         │   matrix    │          │
+│  └─────────────┘         └─────────────┘         └─────────────┘          │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                            SMED TABLES                                      │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  ┌─────────────┐         ┌─────────────┐         ┌─────────────┐          │
+│  │   studies   │────────▶│    steps    │────────▶│improvements │          │
+│  └─────────────┘         └─────────────┘         └─────────────┘          │
+│         │                                                                   │
+│         │                                                                   │
+│         ▼                                                                   │
+│  ┌─────────────┐         ┌─────────────┐                                   │
+│  │  standards  │────────▶│    logs     │                                   │
+│  └─────────────┘         └─────────────┘                                   │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                            SYSTEM TABLES                                    │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  ┌─────────────┐         ┌─────────────┐                                   │
+│  │  settings   │         │  app_state  │                                   │
+│  └─────────────┘         └─────────────┘                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Tables
+
+#### Products
+Stores product/SKU master data with attributes.
+
+```typescript
+// src-electron/db/schema/products.ts
+export const products = sqliteTable('products', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  // Basic info
+  sku: text('sku').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+
+  // Classification
+  family: text('family'),
+  category: text('category'),
+
+  // Production
+  standardTimeMinutes: real('standard_time_minutes'),
+  packQuantity: integer('pack_quantity').default(1),
+
+  // Status
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+
+  // Timestamps
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+
+export const productAttributes = sqliteTable('product_attributes', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+  productId: text('product_id').notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+
+  attributeName: text('attribute_name').notNull(), // e.g., "color", "size"
+  attributeValue: text('attribute_value').notNull(), // e.g., "red", "large"
+});
+```
+
+#### Orders
+Production orders to be scheduled.
+
+```typescript
+// src-electron/db/schema/orders.ts
+export const orders = sqliteTable('orders', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  // Reference
+  orderNumber: text('order_number'),
+  externalId: text('external_id'), // ERP reference
+
+  // What
+  productId: text('product_id').notNull()
+    .references(() => products.id),
+  quantity: integer('quantity').notNull(),
+
+  // When
+  dueDate: text('due_date').notNull(), // ISO date string
+  dueTime: text('due_time'), // HH:MM
+
+  // Priority
+  priority: text('priority', {
+    enum: ['low', 'normal', 'high', 'rush']
+  }).default('normal'),
+
+  // Status
+  status: text('status', {
+    enum: ['pending', 'scheduled', 'in_progress', 'complete', 'canceled']
+  }).default('pending'),
+
+  // Timestamps
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+```
+
+#### Changeover Configuration
+Defines changeover attributes and times matrix.
+
+```typescript
+// src-electron/db/schema/changeovers.ts
+export const changeoverAttributes = sqliteTable('changeover_attributes', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  name: text('name').notNull(), // e.g., "color", "size", "die"
+  displayName: text('display_name').notNull(),
+
+  // Hierarchy position (1 = longest changeovers)
+  hierarchyLevel: integer('hierarchy_level').notNull(),
+
+  // Default time for this attribute change
+  defaultMinutes: integer('default_minutes').default(0),
+
+  // Parallel group (for parallel changeovers)
+  parallelGroup: text('parallel_group').default('default'),
+
+  sortOrder: integer('sort_order').default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+
+export const changeoverMatrix = sqliteTable('changeover_matrix', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  attributeId: text('attribute_id').notNull()
+    .references(() => changeoverAttributes.id, { onDelete: 'cascade' }),
+
+  fromValue: text('from_value').notNull(),
+  toValue: text('to_value').notNull(),
+  timeMinutes: integer('time_minutes').notNull(),
+
+  // Source of the time
+  source: text('source', {
+    enum: ['manual', 'smed_standard', 'smed_average']
+  }).default('manual'),
+
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+```
+
+### SMED Module Tables
+
+#### Studies
+SMED improvement studies for specific changeovers.
+
+```typescript
+// src-electron/db/schema/smed.ts
+export const smedStudies = sqliteTable('smed_studies', {
+  id: text('id').primaryKey().$defaultFn(() => createId()),
+
+  // Basic info
+  name: text('name').notNull(),
+  description: text('description'),
+
+  // Changeover type
+  fromProductId: text('from_product_id')
+    .references(() => products.id),
+  toProductId: text('to_product_id')
+    .references(() => products.id),
+  changeoverType: text('changeover_type'), // Free text alternative
+
+  // Location
+  lineName: text('line_name'),
+  machineName: text('machine_name'),
+
+  // Status
+  status: text('status', {
+    enum: ['draft', 'analyzing', 'improving', 'standardized', 'archived']
+  }).default('draft'),
+
+  // Times
+  baselineMinutes: integer('baseline_minutes'),
+  targetMinutes: integer('target_minutes'),
+  currentMinutes: integer('current_minutes'),
+
+  // Timestamps
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+```
+
+See [SMED_MODULE.md](SMED_MODULE.md) for complete SMED schema including steps, improvements, standards, and logs tables.
+
+### System Tables
+
+```typescript
+// src-electron/db/schema/system.ts
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+
+export const appState = sqliteTable('app_state', {
+  id: text('id').primaryKey().default('main'),
+
+  // UI state
+  lastViewedScheduleId: text('last_viewed_schedule_id'),
+  lastViewedStudyId: text('last_viewed_study_id'),
+
+  // License
+  licenseKey: text('license_key'),
+  licenseValidUntil: integer('license_valid_until', { mode: 'timestamp' }),
+
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .$defaultFn(() => new Date()),
+});
+```
+
+### Drizzle ORM Setup
+
+```typescript
+// src-electron/db/index.ts
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { app } from 'electron';
+import path from 'path';
+
+const dbPath = path.join(app.getPath('userData'), 'changeoveroptimizer.db');
+const sqlite = new Database(dbPath);
+
+// Performance settings
+sqlite.pragma('journal_mode = WAL');
+sqlite.pragma('synchronous = NORMAL');
+sqlite.pragma('cache_size = -64000');
+sqlite.pragma('temp_store = MEMORY');
+
+export const db = drizzle(sqlite);
+
+// Run migrations on startup
+export function initDatabase() {
+  migrate(db, { migrationsFolder: './migrations' });
+}
+```
+
+### Migration Workflow
+
+```bash
+# drizzle.config.ts at project root
+import type { Config } from 'drizzle-kit';
+
+export default {
+  schema: './src-electron/db/schema/*',
+  out: './src-electron/db/migrations',
+  driver: 'better-sqlite',
+  dbCredentials: {
+    url: './changeoveroptimizer.db',
+  },
+} satisfies Config;
+
+# Generate migration after schema changes
+npx drizzle-kit generate:sqlite
+
+# Migrations auto-run on app startup via initDatabase()
+```
+
+### Backup & Restore
+
+```typescript
+// src-electron/services/backup.ts
+import { app } from 'electron';
+import fs from 'fs/promises';
+import path from 'path';
+
+export async function createBackup(): Promise<string> {
+  const dbPath = path.join(app.getPath('userData'), 'changeoveroptimizer.db');
+  const backupDir = path.join(app.getPath('userData'), 'backups');
+
+  await fs.mkdir(backupDir, { recursive: true });
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(backupDir, `backup-${timestamp}.db`);
+
+  await fs.copyFile(dbPath, backupPath);
+
+  return backupPath;
+}
+```
+
+---
+
 ## 1. File Parsing (Input)
 
 ### Supported Formats

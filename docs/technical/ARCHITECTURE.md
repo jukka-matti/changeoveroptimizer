@@ -153,6 +153,8 @@ ChangeoverOptimizer is architected with a **web-first core** that can be deploye
 | **Styling** | Tailwind CSS | 4.x | OKLCH colors, CSS-first config, faster |
 | **Components** | shadcn/ui | Latest | Copy-paste ownership, Radix + Tailwind |
 | **State** | Zustand | 5.x | Simple, minimal boilerplate, performant |
+| **Database** | SQLite (better-sqlite3) | 11.x | Embedded, fast synchronous API |
+| **ORM** | Drizzle | 0.35.x | Type-safe, lightweight ORM |
 | **Build** | Vite | 6.x | Fast dev server, Electron integration |
 | **Package** | Electron Forge | 7.x | Multi-platform builds, auto-update |
 

@@ -74,19 +74,43 @@ claude "Let's build the Welcome screen. Check PRD.md FR-01 for requirements."
    @CLAUDE.md @PRD.md Build the file import service
    ```
 
-## Creating Detailed Docs
+## Project Structure
 
-The TD (Technical Design) documents should be converted to simpler docs:
+```
+changeoveroptimizer/
+├── src/                      # React frontend
+├── src-electron/             # Electron backend with SQLite database
+├── docs/                     # Documentation
+│   ├── technical/            # Architecture, algorithm, data model
+│   ├── product/              # PRD, roadmap
+│   └── guides/               # Setup guides
+├── marketing/                # Website copy, launch plan
+├── course/                   # Practitioner course materials
+├── PRD.md                    # Product requirements
+└── CLAUDE.md                 # Developer guide (read this first!)
+```
 
-| Source | Target |
-|--------|--------|
-| TD-01: Technical Architecture | docs/ARCHITECTURE.md |
-| TD-02: Optimization Algorithm | docs/ALGORITHM.md |
-| TD-03: Data Layer | docs/DATA_MODEL.md |
-| TD-04: UI Components | docs/UI_COMPONENTS.md |
-| TD-05: Licensing & Payments | docs/LICENSING.md |
-| TD-06: Build & Distribution | docs/BUILD.md |
-| TD-07: Development Phases | docs/PHASES.md |
+## Documentation
+
+### For Developers
+- [Architecture](docs/technical/ARCHITECTURE.md) - Electron 39.x + React + SQLite
+- [Data Model](docs/technical/DATA_MODEL.md) - Database schema & state
+- [Algorithm](docs/technical/ALGORITHM.md) - Optimization algorithm
+- [SMED Module](docs/technical/SMED_MODULE.md) - Phase 2 feature spec
+- [UI Components](docs/technical/UI_COMPONENTS.md) - Component library
+- [Design System](docs/technical/DESIGN_SYSTEM.md) - Colors, typography, spacing
+- [Licensing](docs/technical/LICENSING.md) - Paddle integration
+- [Build](docs/technical/BUILD.md) - Build & distribution
+
+### For Product
+- [PRD](PRD.md) - Product requirements
+- [Roadmap](docs/product/PHASES.md) - MVP → SMED → Course timeline
+
+### Business & Marketing
+- [Marketing Materials](/marketing) - Website copy, launch plan
+- [Course Materials](/course) - Practitioner program
+
+Quick reference: [CLAUDE.md](CLAUDE.md)
 
 ## Tips for AI Agents
 
@@ -107,13 +131,13 @@ Use the existing Electron + Vite + React + TypeScript setup.
 ### Building a feature
 ```
 Build FR-01 (File Import) from PRD.md.
-Follow the parser service pattern from docs/DATA_MODEL.md.
+Follow the parser service pattern from docs/technical/DATA_MODEL.md.
 ```
 
 ### Fixing issues
 ```
 The optimizer is slow for 5000 orders.
-Check docs/ALGORITHM.md and optimize the hierarchical grouping.
+Check docs/technical/ALGORITHM.md and optimize the hierarchical grouping.
 ```
 
 ## Updating Context

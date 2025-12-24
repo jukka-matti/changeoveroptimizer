@@ -21,6 +21,9 @@ Production changeover sequence optimization for SME manufacturers.
 | Styling | Tailwind CSS | 4.x |
 | Components | shadcn/ui | Latest |
 | State | Zustand | 5.x |
+| Database | SQLite (better-sqlite3) | 11.x |
+| ORM | Drizzle | 0.35.x |
+| Validation | Zod | 3.x |
 | Build | Vite | 6.x |
 | File Parsing | SheetJS (xlsx) | Latest |
 | Payments | Paddle | API v2 |
@@ -50,7 +53,11 @@ changeoveroptimizer/
 │   ├── main.ts               # Electron entry point
 │   ├── preload.ts            # Security bridge (contextBridge)
 │   ├── ipc-handlers.ts       # IPC command handlers
-│   ├── storage.ts            # Template storage
+│   ├── db/                   # Database layer (SQLite + Drizzle)
+│   │   ├── index.ts          # DB connection & initialization
+│   │   ├── schema.ts         # Drizzle schema definitions
+│   │   └── migrations/       # Schema migrations
+│   ├── storage.ts            # Settings (electron-store)
 │   ├── window-state.ts       # Window persistence
 │   └── types.ts              # TypeScript interfaces
 ├── forge.config.ts           # Electron Forge config
@@ -64,8 +71,11 @@ changeoveroptimizer/
 ## Core Data Flow
 
 ```
-Excel/CSV → Parser → Zustand Store → Optimizer → Results → Exporter → Excel/CSV/PDF
+Excel/CSV → Parser → SQLite/Zustand → Optimizer → SQLite → Exporter → Excel/CSV/PDF
 ```
+
+**SQLite** stores persistent data (products, orders, schedules, SMED studies)
+**Zustand** manages runtime UI state (current screen, loading status)
 
 ## Key Types
 
@@ -118,6 +128,38 @@ type LicenseTier = 'free' | 'pro';
 
 // Free: 50 orders, 3 attributes
 // Pro: Unlimited
+
+// SMED Module types (Phase 2)
+interface Study {
+  id: string;
+  name: string;
+  fromProductId: string;
+  toProductId: string;
+  status: 'draft' | 'analyzing' | 'improving' | 'standardized';
+  baselineMinutes: number;
+  targetMinutes: number;
+  currentMinutes: number;
+}
+
+interface Step {
+  id: string;
+  studyId: string;
+  sequenceNumber: number;
+  description: string;
+  durationSeconds: number;
+  category: 'preparation' | 'removal' | 'installation' | 'adjustment' | 'cleanup';
+  operationType: 'internal' | 'external';  // Internal = machine stopped
+}
+
+interface Improvement {
+  id: string;
+  studyId: string;
+  description: string;
+  improvementType: 'convert_to_external' | 'streamline_internal' | 'parallelize' | 'eliminate';
+  status: 'idea' | 'planned' | 'in_progress' | 'implemented' | 'verified';
+  estimatedSavingsSeconds: number;
+  actualSavingsSeconds: number;
+}
 ```
 
 ## Algorithm Summary
@@ -236,14 +278,28 @@ npm run typecheck      # TypeScript check
 
 ## Documentation
 
-Detailed specs in `/docs`:
+Technical docs in `/docs/technical/`:
+- `ARCHITECTURE.md` — Electron 39.x + React + SQLite architecture
+- `DATA_MODEL.md` — Database schema & state management
+- `ALGORITHM.md` — Optimization algorithm details
+- `SMED_MODULE.md` — Phase 2 feature spec (changeover improvement)
+- `UI_COMPONENTS.md` — Component library
+- `DESIGN_SYSTEM.md` — Colors, typography, spacing
+- `LICENSING.md` — Paddle integration
+- `BUILD.md` — Build & distribution
+
+Product docs in `/docs/product/`:
+- `PHASES.md` — MVP → SMED → Course roadmap
+
+Setup guides in `/docs/guides/`:
+- (Coming: ELECTRON_SETUP.md)
+
+Root docs:
 - `PRD.md` — Product requirements
-- `ARCHITECTURE.md` — Full architecture (from TD-01)
-- `ALGORITHM.md` — Optimization details (from TD-02)
-- `DATA_MODEL.md` — Storage and state (from TD-03)
-- `UI_COMPONENTS.md` — Component library (from TD-04)
-- `LICENSING.md` — Paddle integration (from TD-05)
-- `PHASES.md` — Development roadmap (from TD-07)
+
+Business materials:
+- `/marketing` — Website copy, launch plan
+- `/course` — Practitioner course materials
 
 ## Common Tasks
 
@@ -266,6 +322,15 @@ Detailed specs in `/docs`:
 2. Register in `main.ts` via `ipcMain.handle()`
 3. Add channel to preload whitelist in `preload.ts`
 4. Call from frontend via `window.electron.invoke()`
+
+### Work with the database
+
+Database auto-initializes on first app run.
+- **Location**: `userData/changeoveroptimizer.db`
+- **Schema**: See DATA_MODEL.md for complete schema
+- **Migrations**: Auto-run on startup via `initDatabase()`
+- **ORM**: Use Drizzle for type-safe queries
+- **Backup**: Database is a single file, easy to copy
 
 ### Modify the optimizer
 
