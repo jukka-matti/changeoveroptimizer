@@ -1,66 +1,24 @@
-import { useState } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { useSettingsStore, Theme } from '@/stores/settings-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  ArrowLeft, 
-  Crown, 
-  Moon, 
-  Sun, 
-  Monitor, 
-  Languages, 
-  Trash2, 
-  CheckCircle2, 
-  ShieldCheck,
-  Zap
+import { LicenseSection } from '@/components/features/LicenseSection';
+import {
+  ArrowLeft,
+  Moon,
+  Sun,
+  Monitor,
+  Languages,
 } from 'lucide-react';
 
 export function SettingsScreen() {
   const { navigateTo } = useAppStore();
   const { tier, license, setLicense, clearLicense, isValidating, setValidating } = useLicenseStore();
   const { theme, setTheme, language, setLanguage } = useSettingsStore();
-  const { toast } = useToast();
-
-  const [licenseKey, setLicenseKey] = useState('');
-
-  const handleActivate = async () => {
-    if (!licenseKey.trim()) return;
-    
-    try {
-      setValidating(true);
-      // Mock activation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (licenseKey.toLowerCase() === 'pro-success') {
-        setLicense({
-          key: licenseKey,
-          email: "user@example.com",
-          activatedAt: new Date().toISOString(),
-          expiresAt: null
-        });
-        toast({
-          title: "Pro Activated",
-          description: "Thank you for supporting ChangeoverOptimizer!",
-        });
-        setLicenseKey('');
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Activation Failed",
-          description: "Invalid license key. Use 'pro-success' for testing.",
-        });
-      }
-    } finally {
-      setValidating(false);
-    }
-  };
 
   return (
     <div className="space-y-8 max-w-container-normal mx-auto px-6">
@@ -132,101 +90,15 @@ export function SettingsScreen() {
         </Card>
 
         {/* License */}
-        <Card className={tier === 'pro' ? 'border-primary shadow-md' : ''}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Crown className={`h-5 w-5 ${tier === 'pro' ? 'text-primary fill-current' : ''}`} />
-                Subscription & License
-              </CardTitle>
-              {tier === 'pro' && (
-                <Badge variant="success" className="gap-1">
-                  <ShieldCheck className="h-3 w-3" /> PRO
-                </Badge>
-              )}
-            </div>
-            <CardDescription>
-              {tier === 'pro'
-                ? "You're currently using the Pro version."
-                : "Unlock the full potential of ChangeoverOptimizer."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {tier === 'pro' ? (
-              <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Licensed to:</span>
-                    <span className="font-medium">{license?.email}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">License Key:</span>
-                    <span className="font-mono">••••••••-{license?.key.slice(-4)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Activated:</span>
-                    <span>{license?.activatedAt ? new Date(license.activatedAt).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button variant="outline" className="text-destructive hover:bg-destructive/5" onClick={clearLicense}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Deactivate License
-                  </Button>
-                  <Button variant="outline" disabled>
-                    Manage Subscription
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 normal:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-4 space-y-2">
-                    <h4 className="font-bold">Free</h4>
-                    <p className="text-xs text-muted-foreground">For small schedules and testing.</p>
-                    <ul className="text-xs space-y-1 pt-2">
-                      <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600" /> Up to 50 orders</li>
-                      <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600" /> Max 3 attributes</li>
-                      <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600" /> Excel/CSV Export</li>
-                    </ul>
-                  </div>
-                  <div className="border-2 border-primary rounded-lg p-4 space-y-2 relative">
-                    <div className="absolute -top-3 right-4 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">RECOMMENDED</div>
-                    <h4 className="font-bold">Pro</h4>
-                    <p className="text-xs text-muted-foreground">For professional manufacturing planning.</p>
-                    <ul className="text-xs space-y-1 pt-2">
-                      <li className="flex items-center gap-1.5"><Zap className="h-3 w-3 text-primary fill-current" /> Unlimited orders</li>
-                      <li className="flex items-center gap-1.5"><Zap className="h-3 w-3 text-primary fill-current" /> Unlimited attributes</li>
-                      <li className="flex items-center gap-1.5"><Zap className="h-3 w-3 text-primary fill-current" /> Custom PDF Export</li>
-                      <li className="flex items-center gap-1.5"><Zap className="h-3 w-3 text-primary fill-current" /> Config Templates</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="license-key">Activate License</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      id="license-key" 
-                      placeholder="XXXX-XXXX-XXXX-XXXX" 
-                      value={licenseKey}
-                      onChange={(e) => setLicenseKey(e.target.value)}
-                    />
-                    <Button onClick={handleActivate} disabled={isValidating || !licenseKey.trim()}>
-                      {isValidating ? "Validating..." : "Activate"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Don't have a key? <a href="#" className="text-primary underline">Get one at our website</a>.
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <LicenseSection
+          tier={tier}
+          license={license}
+          onActivate={setLicense}
+          onDeactivate={clearLicense}
+          isValidating={isValidating}
+          setValidating={setValidating}
+        />
       </div>
     </div>
   );
 }
-
-import { Badge } from '@/components/ui/badge';

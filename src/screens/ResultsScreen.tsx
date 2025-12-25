@@ -4,6 +4,7 @@ import { useDataStore } from "@/stores/data-store";
 import { useAnalyticsStore } from "@/stores/analytics-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MetricCard } from "@/components/ui/metric-card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -16,6 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer, Save, Check } from "lucide-react";
 import { ResultsChart } from "@/components/features/ResultsChart";
+import { getParallelGroupBorder } from "@/lib/parallel-groups";
 
 export function ResultsScreen() {
   const { navigateTo } = useAppStore();
@@ -107,51 +109,33 @@ export function ResultsScreen() {
           <span>(Production line stopped)</span>
         </div>
         <div className="grid grid-cols-1 normal:grid-cols-2 wide:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Original Downtime</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{result.totalDowntimeBefore} min</div>
-              <p className="text-xs text-muted-foreground">Work time: {result.totalBefore} min</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Optimized Downtime</CardTitle>
-              <Clock className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{result.totalDowntimeAfter} min</div>
-              <p className="text-xs text-muted-foreground">Work time: {result.totalAfter} min</p>
-            </CardContent>
-          </Card>
-          <Card className="border-success-500/50 bg-success-500/5">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Downtime Saved</CardTitle>
-              <TrendingDown className="h-4 w-4 text-success-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success-600">-{result.downtimeSavings} min</div>
-              <p className="text-xs text-success-600 font-medium">
-                {result.downtimeSavingsPercent}% reduction
-                {result.savings !== result.downtimeSavings && (
-                  <span className="text-muted-foreground font-normal"> (Work: {result.savingsPercent}%)</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Orders</CardTitle>
-              <Layers className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{result.sequence.length}</div>
-              <p className="text-xs text-muted-foreground">Total orders sequenced</p>
-            </CardContent>
-          </Card>
+          <MetricCard
+            title="Original Downtime"
+            value={`${result.totalDowntimeBefore} min`}
+            description={`Work time: ${result.totalBefore} min`}
+            icon={Clock}
+          />
+          <MetricCard
+            title="Optimized Downtime"
+            value={`${result.totalDowntimeAfter} min`}
+            description={`Work time: ${result.totalAfter} min`}
+            icon={Clock}
+            variant="primary"
+          />
+          <MetricCard
+            title="Downtime Saved"
+            value={`-${result.downtimeSavings} min`}
+            description={`${result.downtimeSavingsPercent}% reduction`}
+            subValue={result.savings !== result.downtimeSavings ? `(Work: ${result.savingsPercent}%)` : undefined}
+            icon={TrendingDown}
+            variant="success"
+          />
+          <MetricCard
+            title="Orders"
+            value={result.sequence.length}
+            description="Total orders sequenced"
+            icon={Layers}
+          />
         </div>
       </div>
 
@@ -170,13 +154,7 @@ export function ResultsScreen() {
               {result.attributeStats.map((stat) => (
                 <div
                   key={stat.column}
-                  className={`flex items-center justify-between p-4 border border-l-4 rounded-lg bg-muted/20 ${
-                    stat.parallelGroup === 'A' ? 'border-l-blue-500' :
-                    stat.parallelGroup === 'B' ? 'border-l-green-500' :
-                    stat.parallelGroup === 'C' ? 'border-l-orange-500' :
-                    stat.parallelGroup === 'D' ? 'border-l-purple-500' :
-                    'border-l-gray-300'
-                  }`}
+                  className={`flex items-center justify-between p-4 border border-l-4 rounded-lg bg-muted/20 ${getParallelGroupBorder(stat.parallelGroup)}`}
                 >
                   <div className="space-y-0.5">
                     <p className="text-sm font-medium">{stat.column}</p>

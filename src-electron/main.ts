@@ -1,64 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import {
-  handleReadFile,
-  handleWriteFile,
-  handleListTemplates,
-  handleSaveTemplate,
-  handleDeleteTemplate,
-  handleGreet,
-  handleOpenDialog,
-  handleSaveDialog,
-  // SMED handlers
-  handleGetAllStudies,
-  handleGetStudyById,
-  handleCreateStudy,
-  handleUpdateStudy,
-  handleDeleteStudy,
-  handleGetStepsByStudyId,
-  handleCreateStep,
-  handleUpdateStep,
-  handleDeleteStep,
-  handleGetImprovementsByStudyId,
-  handleCreateImprovement,
-  handleUpdateImprovement,
-  handleGetStandardsByStudyId,
-  handleGetActiveStandard,
-  handleCreateStandard,
-  handleUpdateStandard,
-  handlePublishStandard,
-  handleDeactivateStandard,
-  handleGetLogsByStudyId,
-  handleCreateChangeoverLog,
-  handleGetStudyStatistics,
-  // Analytics handlers
-  handleSaveOptimizationRun,
-  handleGetOptimizationRuns,
-  handleGetOptimizationRunById,
-  handleDeleteOptimizationRun,
-  handleGetOptimizationSavingsTrend,
-  handleGetTopOptimizationRuns,
-  handleGetOptimizationOverviewStats,
-  handleGetSmedOverviewStats,
-  handleGetStudyComparisonData,
-  handleGetImprovementTrends,
-  handleGetImprovementTypeDistribution,
-  handleGetOperationTypeBreakdown,
-  // Changeover matrix handlers
-  handleGetAllChangeoverAttributes,
-  handleGetActiveChangeoverAttributes,
-  handleGetChangeoverAttributeById,
-  handleUpsertChangeoverAttribute,
-  handleDeleteChangeoverAttribute,
-  handleGetMatrixByAttribute,
-  handleUpsertMatrixEntry,
-  handleDeleteMatrixEntry,
-  handleBatchGetChangeoverTimes,
-  handlePrefetchMatrixData,
-  handleImportFromSmedStandard,
-} from './ipc-handlers';
 import { loadWindowState, saveWindowState } from './window-state';
 import { initDatabase, closeDatabase } from './db';
+import { registerAllHandlers } from './ipc/handlers';
+import { initializeIpcHandlers } from './ipc/registry';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -165,67 +110,9 @@ app.whenReady().then(() => {
     return;
   }
 
-  // Register IPC handlers
-  ipcMain.handle('greet', handleGreet);
-  ipcMain.handle('read_file', handleReadFile);
-  ipcMain.handle('write_file', handleWriteFile);
-  ipcMain.handle('list_templates', handleListTemplates);
-  ipcMain.handle('save_template', handleSaveTemplate);
-  ipcMain.handle('delete_template', handleDeleteTemplate);
-  ipcMain.handle('open_dialog', handleOpenDialog);
-  ipcMain.handle('save_dialog', handleSaveDialog);
-
-  // SMED IPC handlers
-  ipcMain.handle('smed:get_all_studies', handleGetAllStudies);
-  ipcMain.handle('smed:get_study_by_id', handleGetStudyById);
-  ipcMain.handle('smed:create_study', handleCreateStudy);
-  ipcMain.handle('smed:update_study', handleUpdateStudy);
-  ipcMain.handle('smed:delete_study', handleDeleteStudy);
-  ipcMain.handle('smed:get_steps', handleGetStepsByStudyId);
-  ipcMain.handle('smed:create_step', handleCreateStep);
-  ipcMain.handle('smed:update_step', handleUpdateStep);
-  ipcMain.handle('smed:delete_step', handleDeleteStep);
-  ipcMain.handle('smed:get_improvements', handleGetImprovementsByStudyId);
-  ipcMain.handle('smed:create_improvement', handleCreateImprovement);
-  ipcMain.handle('smed:update_improvement', handleUpdateImprovement);
-  ipcMain.handle('smed:get_standards', handleGetStandardsByStudyId);
-  ipcMain.handle('smed:get_active_standard', handleGetActiveStandard);
-  ipcMain.handle('smed:create_standard', handleCreateStandard);
-  ipcMain.handle('smed:update_standard', handleUpdateStandard);
-  ipcMain.handle('smed:publish_standard', handlePublishStandard);
-  ipcMain.handle('smed:deactivate_standard', handleDeactivateStandard);
-  ipcMain.handle('smed:get_logs', handleGetLogsByStudyId);
-  ipcMain.handle('smed:create_log', handleCreateChangeoverLog);
-  ipcMain.handle('smed:get_statistics', handleGetStudyStatistics);
-
-  // Analytics IPC handlers - Optimization History
-  ipcMain.handle('analytics:save_optimization_run', handleSaveOptimizationRun);
-  ipcMain.handle('analytics:get_optimization_runs', handleGetOptimizationRuns);
-  ipcMain.handle('analytics:get_optimization_run_by_id', handleGetOptimizationRunById);
-  ipcMain.handle('analytics:delete_optimization_run', handleDeleteOptimizationRun);
-  ipcMain.handle('analytics:get_optimization_trends', handleGetOptimizationSavingsTrend);
-  ipcMain.handle('analytics:get_top_optimization_runs', handleGetTopOptimizationRuns);
-  ipcMain.handle('analytics:get_optimization_overview', handleGetOptimizationOverviewStats);
-
-  // Analytics IPC handlers - SMED Analytics
-  ipcMain.handle('analytics:get_smed_overview', handleGetSmedOverviewStats);
-  ipcMain.handle('analytics:get_study_comparison', handleGetStudyComparisonData);
-  ipcMain.handle('analytics:get_improvement_trends', handleGetImprovementTrends);
-  ipcMain.handle('analytics:get_improvement_types', handleGetImprovementTypeDistribution);
-  ipcMain.handle('analytics:get_operation_breakdown', handleGetOperationTypeBreakdown);
-
-  // Changeover Matrix IPC handlers
-  ipcMain.handle('changeover:get_all_attributes', handleGetAllChangeoverAttributes);
-  ipcMain.handle('changeover:get_active_attributes', handleGetActiveChangeoverAttributes);
-  ipcMain.handle('changeover:get_attribute_by_id', handleGetChangeoverAttributeById);
-  ipcMain.handle('changeover:upsert_attribute', handleUpsertChangeoverAttribute);
-  ipcMain.handle('changeover:delete_attribute', handleDeleteChangeoverAttribute);
-  ipcMain.handle('changeover:get_matrix', handleGetMatrixByAttribute);
-  ipcMain.handle('changeover:upsert_entry', handleUpsertMatrixEntry);
-  ipcMain.handle('changeover:delete_entry', handleDeleteMatrixEntry);
-  ipcMain.handle('changeover:batch_lookup', handleBatchGetChangeoverTimes);
-  ipcMain.handle('changeover:prefetch_matrix', handlePrefetchMatrixData);
-  ipcMain.handle('changeover:import_smed', handleImportFromSmedStandard);
+  // Register all IPC handlers using modular registry
+  registerAllHandlers();
+  initializeIpcHandlers();
 
   createWindow();
 

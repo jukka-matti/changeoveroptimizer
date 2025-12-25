@@ -20,7 +20,7 @@ interface SettingsState {
   theme: Theme;
   exportDefaults: ExportDefaults;
   recentFiles: RecentFile[];
-  telemetryEnabled: boolean;
+  isTelemetryEnabled: boolean;
   
   setLanguage: (language: string) => void;
   setTheme: (theme: Theme) => void;
@@ -45,7 +45,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   theme: "system",
   exportDefaults: defaultExportDefaults,
   recentFiles: [],
-  telemetryEnabled: false,
+  isTelemetryEnabled: false,
   
   setLanguage: (language) => set({ language }),
   setTheme: (theme) => set({ theme }),
@@ -61,7 +61,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     recentFiles: state.recentFiles.filter(f => f.path !== path),
   })),
   clearRecentFiles: () => set({ recentFiles: [] }),
-  setTelemetry: (enabled) => set({ telemetryEnabled: enabled }),
+  setTelemetry: (enabled) => set({ isTelemetryEnabled: enabled }),
   hydrate: (settings) => set(settings),
 }));
 

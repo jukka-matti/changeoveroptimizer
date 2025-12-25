@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSmedStore } from "@/stores/smed-store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UnderlineTabs, UnderlineTabsContainer } from "@/components/ui/underline-tabs";
 import { ArrowLeft, Clock, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { StudyStepsTab } from "./StudyStepsTab";
@@ -26,6 +27,30 @@ export function StudyDetailScreen({ studyId, onBack }: StudyDetailScreenProps) {
   } = useSmedStore();
 
   const [activeTab, setActiveTab] = useState<TabType>("steps");
+
+  // Define tabs with memoization to prevent unnecessary re-renders
+  const tabs = useMemo(() => [
+    {
+      id: "steps",
+      label: t("smed.steps"),
+      badge: currentStatistics?.totalSteps,
+    },
+    {
+      id: "improvements",
+      label: t("smed.improvements"),
+    },
+    {
+      id: "standard",
+      label: t("smed.standard_work"),
+    },
+    {
+      id: "history",
+      label: t("smed.history"),
+      badge: "Phase 4",
+      disabled: true,
+      disabledReason: "Coming in Phase 4",
+    },
+  ], [t, currentStatistics?.totalSteps]);
 
   // Load study on mount
   useEffect(() => {
@@ -180,61 +205,13 @@ export function StudyDetailScreen({ studyId, onBack }: StudyDetailScreenProps) {
       </div>
 
       {/* Tabs */}
-      <div className="border-b bg-muted/30">
-        <div className="max-w-container-wide mx-auto px-6">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab("steps")}
-              className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "steps"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("smed.steps")}
-              {currentStatistics && (
-                <span className="ml-2 text-xs">({currentStatistics.totalSteps})</span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("improvements")}
-              className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "improvements"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("smed.improvements")}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("standard")}
-              className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "standard"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("smed.standard_work")}
-            </button>
-
-            <button
-              onClick={() => setActiveTab("history")}
-              className={`px-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "history"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-              disabled
-              title="Coming in Phase 4"
-            >
-              {t("smed.history")}
-              <span className="ml-2 text-xs opacity-50">(Phase 4)</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <UnderlineTabsContainer>
+        <UnderlineTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as TabType)}
+        />
+      </UnderlineTabsContainer>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-auto">

@@ -56,7 +56,7 @@ export async function save(options: SaveDialogOptions): Promise<string | null> {
 export interface Settings {
   language: string;
   theme: string;
-  telemetryEnabled: boolean;
+  isTelemetryEnabled: boolean;
 }
 
 /**

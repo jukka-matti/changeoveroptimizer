@@ -15,7 +15,7 @@ export function useFileImport() {
     try {
       setLoading(true, 'Reading file...');
 
-      let buffer: any;
+      let buffer: ArrayBuffer;
       let name: string;
       let path: string = '';
 
@@ -37,7 +37,7 @@ export function useFileImport() {
           setLoading(false);
           return;
         }
-        buffer = result.data.buffer;
+        buffer = result.data.buffer as ArrayBuffer;
         name = result.path.split(/[/\\]/).pop() ?? 'unknown';
         path = result.path;
       }

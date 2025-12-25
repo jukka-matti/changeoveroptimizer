@@ -8,9 +8,11 @@ import {
   StudyFormData,
   StepFormData,
   ImprovementFormData,
+  StandardPublishData,
   StudyStatus,
   ImprovementStatus,
 } from "@/types/smed";
+import { smedIpc } from "@/lib/electron-ipc";
 
 export const FREE_STUDY_LIMIT = 3;
 
@@ -43,7 +45,7 @@ interface SmedState {
   loadStudies: () => Promise<void>;
   loadStudyById: (id: string) => Promise<void>;
   createStudy: (data: StudyFormData) => Promise<Study>;
-  updateStudy: (id: string, data: Partial<StudyFormData>) => Promise<void>;
+  updateStudy: (id: string, data: Partial<Study>) => Promise<void>;
   updateStudyStatus: (id: string, status: StudyStatus) => Promise<void>;
   deleteStudy: (id: string) => Promise<void>;
 
@@ -57,12 +59,12 @@ interface SmedState {
   // Improvement operations
   loadImprovements: (studyId: string) => Promise<void>;
   createImprovement: (studyId: string, data: ImprovementFormData) => Promise<Improvement>;
-  updateImprovement: (id: string, data: Partial<ImprovementFormData>) => Promise<void>;
+  updateImprovement: (id: string, data: Partial<Improvement>) => Promise<void>;
   updateImprovementStatus: (id: string, status: ImprovementStatus) => Promise<void>;
 
   // Standard operations
   loadStandards: (studyId: string) => Promise<void>;
-  createStandardFromSteps: (studyId: string, data: any) => Promise<Standard>;
+  createStandardFromSteps: (studyId: string, data: StandardPublishData) => Promise<Standard>;
   publishStandard: (standardId: string) => Promise<void>;
   updateStandard: (standardId: string, data: Partial<Standard>) => Promise<void>;
   deactivateStandard: (standardId: string) => Promise<void>;
@@ -97,8 +99,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   loadStudies: async () => {
     set({ isLoading: true, error: null });
     try {
-      const studies = await (window as any).electron.invoke("smed:get_all_studies");
-      set({ studies, isLoading: false });
+      const studies = await smedIpc.getAllStudies();
+      set({ studies: studies || [], isLoading: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to load studies",
@@ -110,7 +112,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   loadStudyById: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      const study = await (window as any).electron.invoke("smed:get_study_by_id", id);
+      const study = await smedIpc.getStudyById(id);
       if (!study) {
         throw new Error("Study not found");
       }
@@ -133,7 +135,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   createStudy: async (data) => {
     set({ isLoading: true, error: null });
     try {
-      const study = await (window as any).electron.invoke("smed:create_study", {
+      const study = await smedIpc.createStudy({
         name: data.name,
         description: data.description || null,
         fromProductId: data.fromProductId || null,
@@ -164,7 +166,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   updateStudy: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      await (window as any).electron.invoke("smed:update_study", id, data);
+      await smedIpc.updateStudy(id, data);
 
       // Reload studies and current study
       await get().loadStudies();
@@ -183,13 +185,13 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   },
 
   updateStudyStatus: async (id, status) => {
-    await get().updateStudy(id, { status } as any);
+    await get().updateStudy(id, { status });
   },
 
   deleteStudy: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await (window as any).electron.invoke("smed:delete_study", id);
+      await smedIpc.deleteStudy(id);
 
       // Clear current study if it's the deleted one
       if (get().currentStudy?.id === id) {
@@ -217,8 +219,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   // Step operations
   loadSteps: async (studyId) => {
     try {
-      const steps = await (window as any).electron.invoke("smed:get_steps", studyId);
-      set({ currentSteps: steps });
+      const steps = await smedIpc.getSteps(studyId);
+      set({ currentSteps: steps || [] });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to load steps"
@@ -237,7 +239,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
 
       const durationSeconds = (data.minutes * 60) + data.seconds;
 
-      const step = await (window as any).electron.invoke("smed:create_step", {
+      const step = await smedIpc.createStep({
         studyId,
         sequenceNumber,
         description: data.description,
@@ -259,7 +261,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
       if (stats) {
         await get().updateStudy(studyId, {
           currentMinutes: stats.totalTimeSeconds / 60,
-        } as any);
+        });
       }
 
       set({ isLoading: false });
@@ -276,18 +278,18 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   updateStep: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      const updateData: any = { ...data };
+      const updateData: Partial<Step> = { ...data };
 
       // Convert minutes/seconds to durationSeconds if provided
       if (data.minutes !== undefined || data.seconds !== undefined) {
         const minutes = data.minutes ?? 0;
         const seconds = data.seconds ?? 0;
         updateData.durationSeconds = (minutes * 60) + seconds;
-        delete updateData.minutes;
-        delete updateData.seconds;
+        delete (updateData as Partial<StepFormData>).minutes;
+        delete (updateData as Partial<StepFormData>).seconds;
       }
 
-      await (window as any).electron.invoke("smed:update_step", id, updateData);
+      await smedIpc.updateStep(id, updateData);
 
       // Reload steps and statistics
       const studyId = get().currentStudy?.id;
@@ -302,7 +304,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
         if (stats) {
           await get().updateStudy(studyId, {
             currentMinutes: stats.totalTimeSeconds / 60,
-          } as any);
+          });
         }
       }
 
@@ -319,7 +321,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   deleteStep: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await (window as any).electron.invoke("smed:delete_step", id);
+      await smedIpc.deleteStep(id);
 
       // Reload steps and statistics
       const studyId = get().currentStudy?.id;
@@ -334,7 +336,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
         if (stats) {
           await get().updateStudy(studyId, {
             currentMinutes: stats.totalTimeSeconds / 60,
-          } as any);
+          });
         }
       }
 
@@ -353,7 +355,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
     try {
       // Update sequence numbers for all steps
       for (let i = 0; i < stepIds.length; i++) {
-        await (window as any).electron.invoke("smed:update_step", stepIds[i], {
+        await smedIpc.updateStep(stepIds[i], {
           sequenceNumber: i + 1,
         });
       }
@@ -374,8 +376,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   // Improvement operations
   loadImprovements: async (studyId) => {
     try {
-      const improvements = await (window as any).electron.invoke("smed:get_improvements", studyId);
-      set({ currentImprovements: improvements });
+      const improvements = await smedIpc.getImprovements(studyId);
+      set({ currentImprovements: improvements || [] });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to load improvements"
@@ -386,7 +388,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   createImprovement: async (studyId, data) => {
     set({ isLoading: true, error: null });
     try {
-      const improvement = await (window as any).electron.invoke("smed:create_improvement", {
+      const improvement = await smedIpc.createImprovement({
         studyId,
         description: data.description,
         improvementType: data.improvementType,
@@ -418,7 +420,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   updateImprovement: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      await (window as any).electron.invoke("smed:update_improvement", id, data);
+      await smedIpc.updateImprovement(id, data);
 
       // Reload improvements
       const studyId = get().currentStudy?.id;
@@ -437,7 +439,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   },
 
   updateImprovementStatus: async (id, status) => {
-    const updateData: any = { status };
+    const updateData: Partial<Improvement> = { status };
 
     // Set completedDate if status is 'verified'
     if (status === "verified") {
@@ -452,8 +454,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
     set({ isLoading: true });
     try {
       const [standards, active] = await Promise.all([
-        (window as any).electron.invoke("smed:get_standards", { studyId }),
-        (window as any).electron.invoke("smed:get_active_standard", { studyId })
+        smedIpc.getStandards(studyId),
+        smedIpc.getActiveStandard(studyId)
       ]);
 
       set({
@@ -469,7 +471,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
     }
   },
 
-  createStandardFromSteps: async (studyId, data) => {
+  createStandardFromSteps: async (studyId, data: StandardPublishData) => {
     try {
       // Get current steps
       const steps = get().currentSteps;
@@ -483,27 +485,27 @@ export const useSmedStore = create<SmedState>((set, get) => ({
       const standards = get().currentStandards;
       const maxVersion = standards.reduce((max, s) => Math.max(max, s.version), 0);
 
-      // Create standard
-      const standard = await (window as any).electron.invoke("smed:create_standard", {
-        data: {
-          studyId,
-          version: maxVersion + 1,
-          standardTimeMinutes,
-          stepsJson: JSON.stringify(steps.map(s => ({
-            stepId: s.id,
-            description: s.description,
-            durationSeconds: s.durationSeconds,
-            category: s.category,
-            operationType: s.operationType
-          }))),
-          toolsRequired: JSON.stringify(data.toolsRequired || []),
-          safetyPrecautions: data.safetyPrecautions || null,
-          visualAidsJson: JSON.stringify(data.visualAids || []),
-          publishedBy: data.publishedBy || null,
-          notes: data.notes || null,
-          isActive: false, // Don't auto-publish
-        }
-      });
+      // Create standard - DB schema expects JSON strings for array fields
+      // Note: The IPC type uses Standard which has arrays, but DB insert uses JSON strings
+      const dbInsertData = {
+        studyId,
+        version: maxVersion + 1,
+        standardTimeMinutes,
+        stepsJson: JSON.stringify(steps.map(s => ({
+          stepId: s.id,
+          description: s.description,
+          durationSeconds: s.durationSeconds,
+          category: s.category,
+          operationType: s.operationType
+        }))),
+        toolsRequired: JSON.stringify(data.toolsRequired || []),
+        safetyPrecautions: data.safetyPrecautions || null,
+        visualAidsJson: JSON.stringify(data.visualAids || []),
+        publishedBy: data.publishedBy || null,
+        notes: data.notes || null,
+        isActive: false,
+      };
+      const standard = await smedIpc.createStandard(dbInsertData as unknown as Partial<Standard>);
 
       // Reload standards
       await get().loadStandards(studyId);
@@ -517,7 +519,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
 
   publishStandard: async (standardId) => {
     try {
-      await (window as any).electron.invoke("smed:publish_standard", { standardId });
+      await smedIpc.publishStandard(standardId);
 
       // Reload to get updated active state
       const studyId = get().currentStudy?.id;
@@ -530,10 +532,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
 
   updateStandard: async (standardId, data) => {
     try {
-      await (window as any).electron.invoke("smed:update_standard", {
-        id: standardId,
-        data
-      });
+      await smedIpc.updateStandard(standardId, data);
 
       // Reload
       const studyId = get().currentStudy?.id;
@@ -546,7 +545,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
 
   deactivateStandard: async (standardId) => {
     try {
-      await (window as any).electron.invoke("smed:deactivate_standard", { standardId });
+      await smedIpc.deactivateStandard(standardId);
 
       // Reload
       const studyId = get().currentStudy?.id;
@@ -560,7 +559,7 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   // Statistics
   loadStatistics: async (studyId) => {
     try {
-      const statistics = await (window as any).electron.invoke("smed:get_statistics", studyId);
+      const statistics = await smedIpc.getStatistics(studyId);
       set({ currentStatistics: statistics });
     } catch (error) {
       set({

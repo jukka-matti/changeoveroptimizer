@@ -11,6 +11,7 @@ import type {
   OperationTypeBreakdown,
   AnalyticsTab,
 } from '@/types/analytics';
+import { analyticsIpc } from '@/lib/electron-ipc';
 
 interface AnalyticsState {
   // Active tab
@@ -79,17 +80,17 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const [runs, trends, overview, topRuns] = await Promise.all([
-        (window as any).electron.invoke('analytics:get_optimization_runs', { limit: 50 }),
-        (window as any).electron.invoke('analytics:get_optimization_trends', { months: 12 }),
-        (window as any).electron.invoke('analytics:get_optimization_overview', {}),
-        (window as any).electron.invoke('analytics:get_top_optimization_runs', { limit: 5 }),
+        analyticsIpc.getOptimizationRuns(50),
+        analyticsIpc.getOptimizationTrends(12),
+        analyticsIpc.getOptimizationOverview(),
+        analyticsIpc.getTopOptimizationRuns(5),
       ]);
 
       set({
-        optimizationRuns: runs,
-        optimizationTrends: trends,
+        optimizationRuns: runs || [],
+        optimizationTrends: trends || [],
         optimizationOverview: overview,
-        topRuns: topRuns,
+        topRuns: topRuns || [],
         isLoading: false,
       });
     } catch (err) {
@@ -103,25 +104,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   saveOptimizationRun: async (input) => {
     set({ isLoading: true, error: null });
     try {
-      const data = {
-        name: input.name ?? null,
-        fileName: input.fileName ?? null,
-        orderCount: input.orderCount,
-        attributeCount: input.attributeCount,
-        totalBefore: input.totalBefore,
-        totalAfter: input.totalAfter,
-        savings: input.savings,
-        savingsPercent: input.savingsPercent,
-        totalDowntimeBefore: input.totalDowntimeBefore,
-        totalDowntimeAfter: input.totalDowntimeAfter,
-        downtimeSavings: input.downtimeSavings,
-        downtimeSavingsPercent: input.downtimeSavingsPercent,
-        attributesJson: JSON.stringify(input.attributes),
-        attributeStatsJson: JSON.stringify(input.attributeStats),
-        templateId: input.templateId ?? null,
-      };
-
-      const result = await (window as any).electron.invoke('analytics:save_optimization_run', { data });
+      const result = await analyticsIpc.saveOptimizationRun(input);
 
       // Refresh the list
       await get().loadOptimizationHistory();
@@ -140,7 +123,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
   deleteOptimizationRun: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      await (window as any).electron.invoke('analytics:delete_optimization_run', { id });
+      await analyticsIpc.deleteOptimizationRun(id);
 
       // Remove from local state
       set((state) => ({
@@ -161,18 +144,18 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const [overview, comparison, trends, types, breakdown] = await Promise.all([
-        (window as any).electron.invoke('analytics:get_smed_overview', {}),
-        (window as any).electron.invoke('analytics:get_study_comparison', {}),
-        (window as any).electron.invoke('analytics:get_improvement_trends', { months: 12 }),
-        (window as any).electron.invoke('analytics:get_improvement_types', {}),
-        (window as any).electron.invoke('analytics:get_operation_breakdown', {}),
+        analyticsIpc.getSmedOverview(),
+        analyticsIpc.getStudyComparison(),
+        analyticsIpc.getImprovementTrends(12),
+        analyticsIpc.getImprovementTypes(),
+        analyticsIpc.getOperationBreakdown(),
       ]);
 
       set({
         smedOverview: overview,
-        studyComparison: comparison,
-        improvementTrends: trends,
-        improvementTypes: types,
+        studyComparison: comparison || [],
+        improvementTrends: trends || [],
+        improvementTypes: types || [],
         operationBreakdown: breakdown,
         isLoading: false,
       });

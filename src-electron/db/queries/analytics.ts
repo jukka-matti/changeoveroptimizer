@@ -1,4 +1,4 @@
-import { eq, desc, sql, gte, and, ne } from 'drizzle-orm';
+import { eq, desc, sql, gte, and, ne, inArray } from 'drizzle-orm';
 import { getDatabase } from '../index';
 import { optimizationRuns, type OptimizationRunInsert } from '../schema/analytics';
 import { smedStudies, smedSteps, smedImprovements } from '../schema/smed';
@@ -245,12 +245,27 @@ export function getStudyComparisonData(): StudyComparisonData[] {
     .orderBy(desc(smedStudies.updatedAt))
     .all();
 
+  if (studies.length === 0) {
+    return [];
+  }
+
+  // Batch load all steps for all studies in ONE query (fixes N+1)
+  const studyIds = studies.map(s => s.id);
+  const allSteps = db.select()
+    .from(smedSteps)
+    .where(inArray(smedSteps.studyId, studyIds))
+    .all();
+
+  // Group steps by studyId in memory
+  const stepsByStudyId = new Map<string, typeof allSteps>();
+  for (const step of allSteps) {
+    const existing = stepsByStudyId.get(step.studyId) || [];
+    existing.push(step);
+    stepsByStudyId.set(step.studyId, existing);
+  }
+
   return studies.map(study => {
-    // Get steps for this study to calculate internal/external breakdown
-    const steps = db.select()
-      .from(smedSteps)
-      .where(eq(smedSteps.studyId, study.id))
-      .all();
+    const steps = stepsByStudyId.get(study.id) || [];
 
     const totalTime = steps.reduce((sum, s) => sum + s.durationSeconds, 0);
     const internalTime = steps
@@ -414,15 +429,37 @@ export function getOperationTypeBreakdown(): OperationTypeBreakdown {
     .where(ne(smedStudies.status, 'archived'))
     .all();
 
+  if (studies.length === 0) {
+    return {
+      totalInternalSeconds: 0,
+      totalExternalSeconds: 0,
+      internalPercent: 0,
+      externalPercent: 0,
+      studyBreakdowns: [],
+    };
+  }
+
+  // Batch load all steps for all studies in ONE query (fixes N+1)
+  const studyIds = studies.map(s => s.id);
+  const allSteps = db.select()
+    .from(smedSteps)
+    .where(inArray(smedSteps.studyId, studyIds))
+    .all();
+
+  // Group steps by studyId in memory
+  const stepsByStudyId = new Map<string, typeof allSteps>();
+  for (const step of allSteps) {
+    const existing = stepsByStudyId.get(step.studyId) || [];
+    existing.push(step);
+    stepsByStudyId.set(step.studyId, existing);
+  }
+
   let totalInternal = 0;
   let totalExternal = 0;
   const studyBreakdowns: OperationTypeBreakdown['studyBreakdowns'] = [];
 
   for (const study of studies) {
-    const steps = db.select()
-      .from(smedSteps)
-      .where(eq(smedSteps.studyId, study.id))
-      .all();
+    const steps = stepsByStudyId.get(study.id) || [];
 
     const internalTime = steps
       .filter(s => s.operationType === 'internal')

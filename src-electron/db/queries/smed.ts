@@ -36,10 +36,11 @@ export function createStudy(data: typeof smedStudies.$inferInsert) {
 
 export function updateStudy(id: string, data: Partial<typeof smedStudies.$inferInsert>) {
   const db = getDatabase();
-  db.update(smedStudies)
+  return db.update(smedStudies)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(smedStudies.id, id))
-    .run();
+    .returning()
+    .get();
 }
 
 export function deleteStudy(id: string) {
@@ -68,10 +69,11 @@ export function createStep(data: typeof smedSteps.$inferInsert) {
 
 export function updateStep(id: string, data: Partial<typeof smedSteps.$inferInsert>) {
   const db = getDatabase();
-  db.update(smedSteps)
+  return db.update(smedSteps)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(smedSteps.id, id))
-    .run();
+    .returning()
+    .get();
 }
 
 export function deleteStep(id: string) {
@@ -100,10 +102,11 @@ export function createImprovement(data: typeof smedImprovements.$inferInsert) {
 
 export function updateImprovement(id: string, data: Partial<typeof smedImprovements.$inferInsert>) {
   const db = getDatabase();
-  db.update(smedImprovements)
+  return db.update(smedImprovements)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(smedImprovements.id, id))
-    .run();
+    .returning()
+    .get();
 }
 
 // ============================================================================

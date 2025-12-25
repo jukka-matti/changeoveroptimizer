@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DurationInput } from "@/components/ui/duration-input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
+import { secondsToMinSec } from "@/lib/timer-utils";
 
 interface ImprovementFormProps {
   isOpen: boolean;
@@ -58,16 +60,8 @@ export function ImprovementForm({
 }: ImprovementFormProps) {
   const { t } = useTranslation();
 
-  // Convert estimatedSavingsSeconds to minutes and seconds
-  const convertSavings = (savingsSeconds?: number | null) => {
-    if (!savingsSeconds) return { minutes: 0, seconds: 0 };
-    const minutes = Math.floor(savingsSeconds / 60);
-    const seconds = savingsSeconds % 60;
-    return { minutes, seconds };
-  };
-
-  const initialSavings = initialData
-    ? convertSavings(initialData.estimatedSavingsSeconds)
+  const initialSavings = initialData?.estimatedSavingsSeconds
+    ? secondsToMinSec(initialData.estimatedSavingsSeconds)
     : { minutes: 0, seconds: 0 };
 
   const [formData, setFormData] = useState<ImprovementFormData>({
@@ -86,8 +80,8 @@ export function ImprovementForm({
   // Reset form when dialog opens/closes or initialData changes
   useEffect(() => {
     if (isOpen) {
-      const savings = initialData
-        ? convertSavings(initialData.estimatedSavingsSeconds)
+      const savings = initialData?.estimatedSavingsSeconds
+        ? secondsToMinSec(initialData.estimatedSavingsSeconds)
         : { minutes: 0, seconds: 0 };
 
       setFormData({
@@ -118,18 +112,6 @@ export function ImprovementForm({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleNumberInput = (
-    field: "estimatedSavingsMinutes" | "estimatedSavingsSeconds",
-    value: string
-  ) => {
-    const num = parseInt(value) || 0;
-    const max = field === "estimatedSavingsSeconds" ? 59 : 999;
-    setFormData({
-      ...formData,
-      [field]: Math.min(Math.max(num, 0), max),
-    });
   };
 
   const handleCostInput = (value: string) => {
@@ -203,37 +185,17 @@ export function ImprovementForm({
             </div>
 
             {/* Estimated Savings */}
-            <div className="grid gap-2">
-              <Label>{t("smed.estimated_savings")}</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="savingsMinutes" className="text-xs text-muted-foreground">
-                    {t("smed.minutes")}
-                  </Label>
-                  <Input
-                    id="savingsMinutes"
-                    type="number"
-                    min="0"
-                    max="999"
-                    value={formData.estimatedSavingsMinutes}
-                    onChange={(e) => handleNumberInput("estimatedSavingsMinutes", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="savingsSeconds" className="text-xs text-muted-foreground">
-                    {t("smed.seconds")}
-                  </Label>
-                  <Input
-                    id="savingsSeconds"
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={formData.estimatedSavingsSeconds}
-                    onChange={(e) => handleNumberInput("estimatedSavingsSeconds", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+            <DurationInput
+              label={t("smed.estimated_savings")}
+              minutes={formData.estimatedSavingsMinutes || 0}
+              seconds={formData.estimatedSavingsSeconds || 0}
+              onMinutesChange={(value) =>
+                setFormData({ ...formData, estimatedSavingsMinutes: value })
+              }
+              onSecondsChange={(value) =>
+                setFormData({ ...formData, estimatedSavingsSeconds: value })
+              }
+            />
 
             {/* Estimated Cost */}
             <div className="grid gap-2">

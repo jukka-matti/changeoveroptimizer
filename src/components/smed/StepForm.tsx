@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DurationInput } from "@/components/ui/duration-input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
+import { secondsToMinSec } from "@/lib/timer-utils";
 
 interface StepFormProps {
   isOpen: boolean;
@@ -56,16 +58,8 @@ export function StepForm({
 }: StepFormProps) {
   const { t } = useTranslation();
 
-  // Convert durationSeconds to minutes and seconds
-  const convertDuration = (durationSeconds?: number) => {
-    if (!durationSeconds) return { minutes: 0, seconds: 0 };
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = durationSeconds % 60;
-    return { minutes, seconds };
-  };
-
-  const initialDuration = initialData
-    ? convertDuration(initialData.durationSeconds)
+  const initialDuration = initialData?.durationSeconds
+    ? secondsToMinSec(initialData.durationSeconds)
     : { minutes: 0, seconds: 0 };
 
   const [formData, setFormData] = useState<StepFormData>({
@@ -83,8 +77,8 @@ export function StepForm({
   // Reset form when dialog opens/closes or initialData changes
   useEffect(() => {
     if (isOpen) {
-      const duration = initialData
-        ? convertDuration(initialData.durationSeconds)
+      const duration = initialData?.durationSeconds
+        ? secondsToMinSec(initialData.durationSeconds)
         : { minutes: 0, seconds: 0 };
 
       setFormData({
@@ -115,18 +109,6 @@ export function StepForm({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleNumberInput = (
-    field: "minutes" | "seconds",
-    value: string
-  ) => {
-    const num = parseInt(value) || 0;
-    const max = field === "seconds" ? 59 : 999;
-    setFormData({
-      ...formData,
-      [field]: Math.min(Math.max(num, 0), max),
-    });
   };
 
   return (
@@ -162,38 +144,18 @@ export function StepForm({
             </div>
 
             {/* Duration */}
-            <div className="grid gap-2">
-              <Label>{t("smed.duration")}</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="minutes" className="text-xs text-muted-foreground">
-                    {t("smed.minutes")}
-                  </Label>
-                  <Input
-                    id="minutes"
-                    type="number"
-                    min="0"
-                    max="999"
-                    value={formData.minutes}
-                    onChange={(e) => handleNumberInput("minutes", e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="seconds" className="text-xs text-muted-foreground">
-                    {t("smed.seconds")}
-                  </Label>
-                  <Input
-                    id="seconds"
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={formData.seconds}
-                    onChange={(e) => handleNumberInput("seconds", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+            <DurationInput
+              label={t("smed.duration")}
+              minutes={formData.minutes}
+              seconds={formData.seconds}
+              onMinutesChange={(value) =>
+                setFormData({ ...formData, minutes: value })
+              }
+              onSecondsChange={(value) =>
+                setFormData({ ...formData, seconds: value })
+              }
+              required
+            />
 
             {/* Category */}
             <div className="grid gap-2">

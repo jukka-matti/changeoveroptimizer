@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Step } from '@/types/smed';
+import { Step, ChangeoverLog } from '@/types/smed';
+import { smedIpc } from '@/lib/electron-ipc';
 
 interface TimerState {
   // Session data
@@ -205,9 +206,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       ? ((varianceSeconds / totalStandardSeconds) * 100)
       : 0;
 
-    // Create changeover log
+    // Create changeover log - DB expects stepTimingsJson (string) but type uses stepTimings (array)
     try {
-      await (window as any).electron.invoke('smed:create_changeover_log', {
+      const logData = {
         studyId: state.studyId,
         operator: state.operator || null,
         totalSeconds: totalElapsedSeconds,
@@ -222,7 +223,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         variancePercent,
         startedAt: state.startedAt,
         completedAt: new Date(),
-      });
+      };
+      await smedIpc.createLog(logData as unknown as Partial<ChangeoverLog>);
 
       // Reset timer
       set({

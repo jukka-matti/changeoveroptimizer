@@ -12,7 +12,7 @@ type TelemetryEvent =
 class TelemetryService {
   private isEnabled(): boolean {
     // In a real hook-less class, we access the state directly
-    return useSettingsStore.getState().telemetryEnabled;
+    return useSettingsStore.getState().isTelemetryEnabled;
   }
 
   public trackEvent(event: TelemetryEvent, properties?: Record<string, any>) {

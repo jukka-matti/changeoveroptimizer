@@ -91,3 +91,73 @@ export function calculateProgress(current: number, total: number): number {
   if (total === 0) return 0;
   return Math.min(Math.round((current / total) * 100), 100);
 }
+
+// ============================================================================
+// Time Conversion Utilities (for form inputs)
+// ============================================================================
+
+export interface MinSecDuration {
+  minutes: number;
+  seconds: number;
+}
+
+/**
+ * Convert total seconds to { minutes, seconds } tuple.
+ * Used by form inputs that have separate minute/second fields.
+ *
+ * @example
+ * secondsToMinSec(150) // { minutes: 2, seconds: 30 }
+ */
+export function secondsToMinSec(totalSeconds: number): MinSecDuration {
+  if (!totalSeconds || totalSeconds < 0) {
+    return { minutes: 0, seconds: 0 };
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return { minutes, seconds };
+}
+
+/**
+ * Convert { minutes, seconds } to total seconds.
+ * Used when saving form data that has separate minute/second fields.
+ *
+ * @example
+ * minSecToSeconds(2, 30) // 150
+ */
+export function minSecToSeconds(minutes: number, seconds: number): number {
+  return (minutes * 60) + seconds;
+}
+
+/**
+ * Clamp a time input value to valid range.
+ * Minutes: 0-999, Seconds: 0-59
+ *
+ * @example
+ * clampTimeValue(65, 'seconds') // 59
+ * clampTimeValue(-5, 'minutes') // 0
+ */
+export function clampTimeValue(
+  value: number,
+  field: 'minutes' | 'seconds'
+): number {
+  const maxValue = field === 'seconds' ? 59 : 999;
+  return Math.min(Math.max(Math.round(value) || 0, 0), maxValue);
+}
+
+/**
+ * Parse a string input to a clamped time value.
+ * Useful for handling onChange events from number inputs.
+ *
+ * @example
+ * parseTimeInput('45', 'seconds') // 45
+ * parseTimeInput('', 'minutes')   // 0
+ * parseTimeInput('abc', 'seconds') // 0
+ */
+export function parseTimeInput(
+  value: string,
+  field: 'minutes' | 'seconds'
+): number {
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return 0;
+  return clampTimeValue(parsed, field);
+}
