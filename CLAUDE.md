@@ -38,32 +38,41 @@ changeoveroptimizer/
 ├── src/                      # React frontend
 │   ├── App.tsx
 │   ├── components/           # UI components
-│   │   ├── ui/               # shadcn/ui primitives
-│   │   └── features/         # Feature-specific
+│   │   ├── ui/               # shadcn/ui + custom (DurationInput, MetricCard, etc.)
+│   │   ├── smed/             # SMED-specific (NewStudyDialog, etc.)
+│   │   └── features/         # Feature-specific (LicenseSection)
 │   ├── screens/              # Page-level components
 │   ├── stores/               # Zustand stores
+│   │   └── utils/            # Store utilities (async-action.ts)
 │   ├── services/             # Business logic
 │   │   ├── parser.ts         # Excel/CSV parsing
 │   │   ├── optimizer.ts      # Core algorithm
-│   │   └── exporter.ts       # Export generation
-│   ├── hooks/                # Custom React hooks
-│   ├── lib/                  # Utilities
+│   │   ├── exporter.ts       # Export generation
+│   │   └── pdf/              # PDF generation (config.ts)
+│   ├── hooks/                # Custom React hooks (useKeyboardEvent, etc.)
+│   ├── lib/                  # Utilities (electron-ipc.ts, parallel-groups.ts, timer-utils.ts)
+│   ├── types/                # TypeScript types (base.ts, smed.ts, etc.)
 │   └── i18n/                 # Translations
 ├── src-electron/             # TypeScript backend (main process)
 │   ├── main.ts               # Electron entry point
 │   ├── preload.ts            # Security bridge (contextBridge)
-│   ├── ipc-handlers.ts       # IPC command handlers
+│   ├── ipc-handlers.ts       # Legacy IPC handlers
+│   ├── ipc/                  # Modular IPC system
+│   │   ├── registry.ts       # Handler registration utilities
+│   │   └── handlers/         # Domain-specific handlers
+│   │       ├── files.ts      # File operations
+│   │       ├── smed.ts       # SMED operations
+│   │       ├── analytics.ts  # Analytics operations
+│   │       └── changeovers.ts # Changeover matrix operations
 │   ├── db/                   # Database layer (SQLite + Drizzle)
 │   │   ├── index.ts          # DB connection & initialization
-│   │   ├── schema.ts         # Drizzle schema definitions
+│   │   ├── schema/           # Drizzle schema definitions
+│   │   ├── queries/          # Query functions
+│   │   ├── utils.ts          # DB utilities (groupByMonth, etc.)
 │   │   └── migrations/       # Schema migrations
 │   ├── storage.ts            # Settings (electron-store)
-│   ├── window-state.ts       # Window persistence
-│   └── types.ts              # TypeScript interfaces
+│   └── window-state.ts       # Window persistence
 ├── forge.config.ts           # Electron Forge config
-├── tsconfig.electron.json    # TypeScript config
-├── vite.main.config.ts       # Vite config for main
-├── vite.preload.config.ts    # Vite config for preload
 ├── docs/                     # Detailed specs
 └── public/                   # Static assets
 ```
@@ -318,6 +327,14 @@ Business materials:
 
 ### Add an Electron IPC handler (backend)
 
+**Using the modular system (recommended):**
+1. Add handler in appropriate `src-electron/ipc/handlers/*.ts` file
+2. Use `registerHandler()` from registry.ts
+3. Add channel to preload whitelist in `preload.ts`
+4. Add typed wrapper in `src/lib/electron-ipc.ts`
+5. Call from frontend via typed wrapper (e.g., `smedIpc.getStudy(id)`)
+
+**Legacy approach (for quick additions):**
 1. Add handler in `src-electron/ipc-handlers.ts`
 2. Register in `main.ts` via `ipcMain.handle()`
 3. Add channel to preload whitelist in `preload.ts`
@@ -338,6 +355,29 @@ Database auto-initializes on first app run.
 2. Write tests before changing
 3. Benchmark with 1000+ orders
 4. Document changes
+
+## Reusable Components & Utilities
+
+### UI Components (`src/components/ui/`)
+- `DurationInput` - Time input with minutes/seconds fields
+- `MetricCard` - Stats display with variants (default, success, warning)
+- `UnderlineTabs` - Tab navigation with underline style
+- `FormDialog` - Modal dialog with form handling via `useFormDialog()`
+
+### Hooks (`src/hooks/`)
+- `useKeyboardEvent` - Unified keyboard shortcut handling
+- `useFileImport` - File import with drag-and-drop support
+
+### Utilities (`src/lib/`)
+- `electron-ipc.ts` - Type-safe IPC wrappers (smedIpc, analyticsIpc, filesIpc)
+- `parallel-groups.ts` - Parallel group colors and border utilities
+- `timer-utils.ts` - Time formatting (formatTime, secondsToMinSec, etc.)
+
+### Store Utilities (`src/stores/utils/`)
+- `async-action.ts` - createAsyncAction() for consistent async state handling
+
+### Types (`src/types/`)
+- `base.ts` - BaseEntity, AsyncState<T>, FormData<T>
 
 ## Contact
 
