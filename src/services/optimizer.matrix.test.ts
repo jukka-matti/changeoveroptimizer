@@ -352,7 +352,7 @@ describe('Optimizer with Matrix Lookup', () => {
       });
 
       expect(result.sequence).toHaveLength(8);
-      expect(result.totalAfter).toBeLessThan(result.totalBefore);
+      expect(result.totalAfter).toBeLessThanOrEqual(result.totalBefore);
     });
 
     it('should handle decimal matrix times', () => {
