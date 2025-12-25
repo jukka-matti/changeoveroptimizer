@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { StudyStepsTab } from "./StudyStepsTab";
 import { StudyImprovementsTab } from "./StudyImprovementsTab";
+import { StudyStandardWorkTab } from "./StudyStandardWorkTab";
 
 interface StudyDetailScreenProps {
   studyId: string;
@@ -214,11 +215,8 @@ export function StudyDetailScreen({ studyId, onBack }: StudyDetailScreenProps) {
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
-              disabled
-              title="Coming in Phase 4"
             >
               {t("smed.standard_work")}
-              <span className="ml-2 text-xs opacity-50">(Phase 4)</span>
             </button>
 
             <button
@@ -243,11 +241,7 @@ export function StudyDetailScreen({ studyId, onBack }: StudyDetailScreenProps) {
         <div className="max-w-container-wide mx-auto px-6 py-6">
           {activeTab === "steps" && <StudyStepsTab studyId={studyId} />}
           {activeTab === "improvements" && <StudyImprovementsTab studyId={studyId} />}
-          {activeTab === "standard" && (
-            <div className="text-center py-12 text-muted-foreground">
-              Standard Work tab coming in Phase 4
-            </div>
-          )}
+          {activeTab === "standard" && <StudyStandardWorkTab studyId={studyId} />}
           {activeTab === "history" && (
             <div className="text-center py-12 text-muted-foreground">
               History tab coming in Phase 4

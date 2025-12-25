@@ -25,6 +25,9 @@ import {
   handleGetStandardsByStudyId,
   handleGetActiveStandard,
   handleCreateStandard,
+  handleUpdateStandard,
+  handlePublishStandard,
+  handleDeactivateStandard,
   handleGetLogsByStudyId,
   handleCreateChangeoverLog,
   handleGetStudyStatistics,
@@ -163,6 +166,9 @@ app.whenReady().then(() => {
   ipcMain.handle('smed:get_standards', handleGetStandardsByStudyId);
   ipcMain.handle('smed:get_active_standard', handleGetActiveStandard);
   ipcMain.handle('smed:create_standard', handleCreateStandard);
+  ipcMain.handle('smed:update_standard', handleUpdateStandard);
+  ipcMain.handle('smed:publish_standard', handlePublishStandard);
+  ipcMain.handle('smed:deactivate_standard', handleDeactivateStandard);
   ipcMain.handle('smed:get_logs', handleGetLogsByStudyId);
   ipcMain.handle('smed:create_log', handleCreateChangeoverLog);
   ipcMain.handle('smed:get_statistics', handleGetStudyStatistics);

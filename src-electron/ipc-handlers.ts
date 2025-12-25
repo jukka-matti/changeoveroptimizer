@@ -21,6 +21,9 @@ import {
   getStandardsByStudyId,
   getActiveStandard,
   createStandard,
+  updateStandard,
+  publishStandard,
+  deactivateStandard,
   getLogsByStudyId,
   createChangeoverLog,
   getStudyStatistics,
@@ -256,6 +259,30 @@ export async function handleCreateStandard(event: IpcMainInvokeEvent, args: { da
     return createStandard(args.data);
   } catch (err) {
     throw new Error(`Failed to create standard: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleUpdateStandard(event: IpcMainInvokeEvent, args: { id: string; data: any }) {
+  try {
+    return updateStandard(args.id, args.data);
+  } catch (err) {
+    throw new Error(`Failed to update standard: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handlePublishStandard(event: IpcMainInvokeEvent, args: { standardId: string }) {
+  try {
+    return publishStandard(args.standardId);
+  } catch (err) {
+    throw new Error(`Failed to publish standard: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleDeactivateStandard(event: IpcMainInvokeEvent, args: { standardId: string }) {
+  try {
+    return deactivateStandard(args.standardId);
+  } catch (err) {
+    throw new Error(`Failed to deactivate standard: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

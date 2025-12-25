@@ -18,7 +18,9 @@
     "edit": "Edit",
     "loading": "Loading...",
     "pro": "PRO",
-    "upgrade": "Upgrade to Pro"
+    "upgrade": "Upgrade to Pro",
+    "export": "Export",
+    "publishing": "Publishing..."
   },
   "header": {
     "about": "About ChangeoverOptimizer",
@@ -123,7 +125,26 @@
     "actual_savings_total": "Actual Savings",
     "roi": "ROI",
     "change_status": "Change Status",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "publish_standard": "Publish Standard",
+    "publish_first_standard": "Publish First Standard",
+    "active_standard": "Active Standard",
+    "total_versions": "Total Versions",
+    "current_steps": "Current Steps",
+    "versions_history": "Version History",
+    "no_standards_yet": "No standards published yet",
+    "no_steps_to_publish": "Add changeover steps before publishing a standard",
+    "standard_work_description": "Publish and manage standardized changeover procedures",
+    "tools_required": "Tools Required",
+    "add_tool_placeholder": "Add tool name...",
+    "safety_precautions": "Safety Precautions",
+    "safety_placeholder": "List any safety considerations...",
+    "published_by": "Published By",
+    "published_by_placeholder": "Your name",
+    "published_on": "Published on",
+    "publish": "Publish",
+    "deactivate": "Deactivate",
+    "notes_placeholder": "Additional notes..."
   },
   "timer": {
     "title": "Changeover Timer",

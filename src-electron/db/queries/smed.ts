@@ -136,6 +136,60 @@ export function createStandard(data: typeof smedStandards.$inferInsert) {
   return result;
 }
 
+export function updateStandard(id: string, data: Partial<typeof smedStandards.$inferInsert>) {
+  const db = getDatabase();
+  const result = db.update(smedStandards)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(smedStandards.id, id))
+    .returning()
+    .get();
+  return result;
+}
+
+export function publishStandard(standardId: string) {
+  const db = getDatabase();
+
+  // Get the standard to find its studyId
+  const standard = db.select()
+    .from(smedStandards)
+    .where(eq(smedStandards.id, standardId))
+    .get();
+
+  if (!standard) throw new Error('Standard not found');
+
+  // Deactivate all other standards for this study
+  db.update(smedStandards)
+    .set({ isActive: false })
+    .where(eq(smedStandards.studyId, standard.studyId))
+    .run();
+
+  // Activate this standard
+  const result = db.update(smedStandards)
+    .set({
+      isActive: true,
+      publishedAt: new Date(),
+      updatedAt: new Date()
+    })
+    .where(eq(smedStandards.id, standardId))
+    .returning()
+    .get();
+
+  return result;
+}
+
+export function deactivateStandard(standardId: string) {
+  const db = getDatabase();
+  const result = db.update(smedStandards)
+    .set({
+      isActive: false,
+      updatedAt: new Date()
+    })
+    .where(eq(smedStandards.id, standardId))
+    .returning()
+    .get();
+  return result;
+}
+
 // ============================================================================
 // Changeover log operations
 // ============================================================================

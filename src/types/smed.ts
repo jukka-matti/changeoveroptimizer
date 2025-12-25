@@ -243,3 +243,14 @@ export interface ImprovementFormData {
   dueDate?: Date;
   notes?: string;
 }
+
+/**
+ * Form data for publishing a new standard
+ */
+export interface StandardPublishData {
+  toolsRequired?: string[];
+  safetyPrecautions?: string;
+  visualAids?: string[];
+  publishedBy?: string;
+  notes?: string;
+}

@@ -3,6 +3,7 @@ import {
   Study,
   Step,
   Improvement,
+  Standard,
   StudyStatistics,
   StudyFormData,
   StepFormData,
@@ -23,6 +24,10 @@ interface SmedState {
 
   // Improvements
   currentImprovements: Improvement[];
+
+  // Standards
+  currentStandards: Standard[];
+  activeStandard: Standard | null;
 
   // Statistics
   currentStatistics: StudyStatistics | null;
@@ -55,6 +60,13 @@ interface SmedState {
   updateImprovement: (id: string, data: Partial<ImprovementFormData>) => Promise<void>;
   updateImprovementStatus: (id: string, status: ImprovementStatus) => Promise<void>;
 
+  // Standard operations
+  loadStandards: (studyId: string) => Promise<void>;
+  createStandardFromSteps: (studyId: string, data: any) => Promise<Standard>;
+  publishStandard: (standardId: string) => Promise<void>;
+  updateStandard: (standardId: string, data: Partial<Standard>) => Promise<void>;
+  deactivateStandard: (standardId: string) => Promise<void>;
+
   // Statistics
   loadStatistics: (studyId: string) => Promise<void>;
 
@@ -69,6 +81,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
   currentStudy: null,
   currentSteps: [],
   currentImprovements: [],
+  currentStandards: [],
+  activeStandard: null,
   currentStatistics: null,
   isLoading: false,
   error: null,
@@ -433,6 +447,116 @@ export const useSmedStore = create<SmedState>((set, get) => ({
     await get().updateImprovement(id, updateData);
   },
 
+  // Standard operations
+  loadStandards: async (studyId) => {
+    set({ isLoading: true });
+    try {
+      const [standards, active] = await Promise.all([
+        (window as any).electron.invoke("smed:get_standards", { studyId }),
+        (window as any).electron.invoke("smed:get_active_standard", { studyId })
+      ]);
+
+      set({
+        currentStandards: standards || [],
+        activeStandard: active || null,
+        isLoading: false
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Failed to load standards",
+        isLoading: false
+      });
+    }
+  },
+
+  createStandardFromSteps: async (studyId, data) => {
+    try {
+      // Get current steps
+      const steps = get().currentSteps;
+
+      // Calculate total standard time
+      const standardTimeMinutes = steps.reduce((sum, step) =>
+        sum + (step.durationSeconds / 60), 0
+      );
+
+      // Find next version number
+      const standards = get().currentStandards;
+      const maxVersion = standards.reduce((max, s) => Math.max(max, s.version), 0);
+
+      // Create standard
+      const standard = await (window as any).electron.invoke("smed:create_standard", {
+        data: {
+          studyId,
+          version: maxVersion + 1,
+          standardTimeMinutes,
+          stepsJson: JSON.stringify(steps.map(s => ({
+            stepId: s.id,
+            description: s.description,
+            durationSeconds: s.durationSeconds,
+            category: s.category,
+            operationType: s.operationType
+          }))),
+          toolsRequired: JSON.stringify(data.toolsRequired || []),
+          safetyPrecautions: data.safetyPrecautions || null,
+          visualAidsJson: JSON.stringify(data.visualAids || []),
+          publishedBy: data.publishedBy || null,
+          notes: data.notes || null,
+          isActive: false, // Don't auto-publish
+        }
+      });
+
+      // Reload standards
+      await get().loadStandards(studyId);
+
+      return standard;
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to create standard" });
+      throw error;
+    }
+  },
+
+  publishStandard: async (standardId) => {
+    try {
+      await (window as any).electron.invoke("smed:publish_standard", { standardId });
+
+      // Reload to get updated active state
+      const studyId = get().currentStudy?.id;
+      if (studyId) await get().loadStandards(studyId);
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to publish standard" });
+      throw error;
+    }
+  },
+
+  updateStandard: async (standardId, data) => {
+    try {
+      await (window as any).electron.invoke("smed:update_standard", {
+        id: standardId,
+        data
+      });
+
+      // Reload
+      const studyId = get().currentStudy?.id;
+      if (studyId) await get().loadStandards(studyId);
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to update standard" });
+      throw error;
+    }
+  },
+
+  deactivateStandard: async (standardId) => {
+    try {
+      await (window as any).electron.invoke("smed:deactivate_standard", { standardId });
+
+      // Reload
+      const studyId = get().currentStudy?.id;
+      if (studyId) await get().loadStandards(studyId);
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : "Failed to deactivate standard" });
+      throw error;
+    }
+  },
+
   // Statistics
   loadStatistics: async (studyId) => {
     try {
@@ -453,6 +577,8 @@ export const useSmedStore = create<SmedState>((set, get) => ({
     currentStudy: null,
     currentSteps: [],
     currentImprovements: [],
+    currentStandards: [],
+    activeStandard: null,
     currentStatistics: null,
     isLoading: false,
     error: null,
