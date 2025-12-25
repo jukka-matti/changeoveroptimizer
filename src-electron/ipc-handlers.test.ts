@@ -25,14 +25,14 @@ vi.mock('electron', () => ({
     fromWebContents: vi.fn(),
   },
 }));
-vi.mock('./storage', () => ({
-  listTemplates: vi.fn(),
+vi.mock('./db/queries/templates', () => ({
+  getAllTemplates: vi.fn(),
   saveTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
 }));
 
-// Import mocked storage functions
-import { listTemplates, saveTemplate, deleteTemplate } from './storage';
+// Import mocked template functions
+import { getAllTemplates, saveTemplate, deleteTemplate } from './db/queries/templates';
 
 describe('IPC Handlers', () => {
   let mockEvent: IpcMainInvokeEvent;
@@ -208,16 +208,16 @@ describe('IPC Handlers', () => {
         },
       ];
 
-      vi.mocked(listTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(getAllTemplates).mockResolvedValue(mockTemplates);
 
       const result = await handleListTemplates(mockEvent);
 
       expect(result).toEqual(mockTemplates);
-      expect(listTemplates).toHaveBeenCalled();
+      expect(getAllTemplates).toHaveBeenCalled();
     });
 
     it('should return empty array when no templates exist', async () => {
-      vi.mocked(listTemplates).mockResolvedValue([]);
+      vi.mocked(getAllTemplates).mockResolvedValue([]);
 
       const result = await handleListTemplates(mockEvent);
 
@@ -225,7 +225,7 @@ describe('IPC Handlers', () => {
     });
 
     it('should throw error when listing fails', async () => {
-      vi.mocked(listTemplates).mockRejectedValue(new Error('Directory not accessible'));
+      vi.mocked(getAllTemplates).mockRejectedValue(new Error('Directory not accessible'));
 
       await expect(handleListTemplates(mockEvent)).rejects.toThrow(
         'Failed to list templates'
