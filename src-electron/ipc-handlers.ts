@@ -28,6 +28,20 @@ import {
   createChangeoverLog,
   getStudyStatistics,
 } from './db/queries/smed';
+import {
+  saveOptimizationRun,
+  getOptimizationRuns,
+  getOptimizationRunById,
+  deleteOptimizationRun,
+  getOptimizationSavingsTrend,
+  getTopOptimizationRuns,
+  getOptimizationOverviewStats,
+  getSmedOverviewStats,
+  getStudyComparisonData,
+  getImprovementTrends,
+  getImprovementTypeDistribution,
+  getOperationTypeBreakdown,
+} from './db/queries/analytics';
 import type { StoredTemplate } from './types';
 
 export async function handleGreet(
@@ -315,5 +329,109 @@ export async function handleGetStudyStatistics(event: IpcMainInvokeEvent, args: 
     return getStudyStatistics(args.studyId);
   } catch (err) {
     throw new Error(`Failed to get study statistics: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// ============================================================================
+// Analytics handlers - Optimization History
+// ============================================================================
+
+export async function handleSaveOptimizationRun(event: IpcMainInvokeEvent, args: { data: any }) {
+  try {
+    return saveOptimizationRun(args.data);
+  } catch (err) {
+    throw new Error(`Failed to save optimization run: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetOptimizationRuns(event: IpcMainInvokeEvent, args: { limit?: number }) {
+  try {
+    return getOptimizationRuns(args.limit);
+  } catch (err) {
+    throw new Error(`Failed to get optimization runs: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetOptimizationRunById(event: IpcMainInvokeEvent, args: { id: string }) {
+  try {
+    return getOptimizationRunById(args.id);
+  } catch (err) {
+    throw new Error(`Failed to get optimization run: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleDeleteOptimizationRun(event: IpcMainInvokeEvent, args: { id: string }) {
+  try {
+    return deleteOptimizationRun(args.id);
+  } catch (err) {
+    throw new Error(`Failed to delete optimization run: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetOptimizationSavingsTrend(event: IpcMainInvokeEvent, args: { months?: number }) {
+  try {
+    return getOptimizationSavingsTrend(args.months);
+  } catch (err) {
+    throw new Error(`Failed to get optimization trends: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetTopOptimizationRuns(event: IpcMainInvokeEvent, args: { limit?: number }) {
+  try {
+    return getTopOptimizationRuns(args.limit);
+  } catch (err) {
+    throw new Error(`Failed to get top optimization runs: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetOptimizationOverviewStats(event: IpcMainInvokeEvent) {
+  try {
+    return getOptimizationOverviewStats();
+  } catch (err) {
+    throw new Error(`Failed to get optimization overview: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// ============================================================================
+// Analytics handlers - SMED Analytics
+// ============================================================================
+
+export async function handleGetSmedOverviewStats(event: IpcMainInvokeEvent) {
+  try {
+    return getSmedOverviewStats();
+  } catch (err) {
+    throw new Error(`Failed to get SMED overview: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetStudyComparisonData(event: IpcMainInvokeEvent) {
+  try {
+    return getStudyComparisonData();
+  } catch (err) {
+    throw new Error(`Failed to get study comparison data: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetImprovementTrends(event: IpcMainInvokeEvent, args: { months?: number }) {
+  try {
+    return getImprovementTrends(args.months);
+  } catch (err) {
+    throw new Error(`Failed to get improvement trends: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetImprovementTypeDistribution(event: IpcMainInvokeEvent) {
+  try {
+    return getImprovementTypeDistribution();
+  } catch (err) {
+    throw new Error(`Failed to get improvement type distribution: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetOperationTypeBreakdown(event: IpcMainInvokeEvent) {
+  try {
+    return getOperationTypeBreakdown();
+  } catch (err) {
+    throw new Error(`Failed to get operation type breakdown: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

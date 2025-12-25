@@ -5,3 +5,6 @@ export * from './products';
 
 // SMED schemas (Phase 2)
 export * from './smed';
+
+// Analytics schemas
+export * from './analytics';

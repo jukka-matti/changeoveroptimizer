@@ -15,6 +15,13 @@
       "when": 1766611466450,
       "tag": "0001_narrow_tenebrous",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1766623254842,
+      "tag": "0002_dizzy_toro",
+      "breakpoints": true
     }
   ]
 }

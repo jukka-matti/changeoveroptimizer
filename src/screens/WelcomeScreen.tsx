@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings-store";
-import { FileSpreadsheet, Clock, ChevronRight } from "lucide-react";
+import { useAppStore } from "@/stores/app-store";
+import { FileSpreadsheet, Clock, ChevronRight, BarChart3, Wrench } from "lucide-react";
 import { FileDropzone } from "@/components/features/FileDropzone";
 import { useFileImport } from "@/hooks/useFileImport";
 import { useTranslation } from "react-i18next";
@@ -10,6 +11,7 @@ export function WelcomeScreen() {
   const { t } = useTranslation();
   const { importFile, importBuffer, importFromPath, loadSampleData: importSample } = useFileImport();
   const { recentFiles } = useSettingsStore();
+  const { navigateTo } = useAppStore();
 
   return (
     <div className="flex flex-col items-center justify-center space-y-12 max-w-container-normal mx-auto py-8 px-6">
@@ -81,6 +83,51 @@ export function WelcomeScreen() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Module Navigation */}
+      <div className="grid grid-cols-1 normal:grid-cols-2 gap-4 w-full">
+        <Card
+          className="hover:border-primary cursor-pointer transition-colors"
+          onClick={() => navigateTo('smed')}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+              SMED Module
+            </CardTitle>
+            <CardDescription>
+              Analyze and improve changeover procedures
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" className="w-full">
+              Open SMED Studies
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="hover:border-primary cursor-pointer transition-colors"
+          onClick={() => navigateTo('analytics')}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Analytics Dashboard
+            </CardTitle>
+            <CardDescription>
+              Track optimization savings and SMED improvements
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" className="w-full">
+              View Analytics
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

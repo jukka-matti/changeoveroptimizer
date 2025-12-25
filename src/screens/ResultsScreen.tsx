@@ -1,23 +1,56 @@
+import { useState } from "react";
 import { useAppStore } from "@/stores/app-store";
 import { useDataStore } from "@/stores/data-store";
+import { useAnalyticsStore } from "@/stores/analytics-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer } from "lucide-react";
+import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer, Save, Check } from "lucide-react";
 import { ResultsChart } from "@/components/features/ResultsChart";
 
 export function ResultsScreen() {
   const { navigateTo } = useAppStore();
-  const { result, config } = useDataStore();
+  const { result, config, sourceFile } = useDataStore();
+  const { saveOptimizationRun } = useAnalyticsStore();
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveToHistory = async () => {
+    if (!result || isSaved) return;
+
+    setIsSaving(true);
+    try {
+      await saveOptimizationRun({
+        fileName: sourceFile?.name || undefined,
+        orderCount: result.sequence.length,
+        attributeCount: config.attributes.length,
+        totalBefore: result.totalBefore,
+        totalAfter: result.totalAfter,
+        savings: result.savings,
+        savingsPercent: result.savingsPercent,
+        totalDowntimeBefore: result.totalDowntimeBefore,
+        totalDowntimeAfter: result.totalDowntimeAfter,
+        downtimeSavings: result.downtimeSavings,
+        downtimeSavingsPercent: result.downtimeSavingsPercent,
+        attributes: config.attributes,
+        attributeStats: result.attributeStats,
+      });
+      setIsSaved(true);
+    } catch (error) {
+      console.error('Failed to save optimization run:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!result) {
     return (
@@ -41,6 +74,23 @@ export function ResultsScreen() {
           <Button variant="outline" onClick={() => navigateTo("changeover-config")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSaveToHistory}
+            disabled={isSaved || isSaving}
+          >
+            {isSaved ? (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Saved
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? 'Saving...' : 'Save to History'}
+              </>
+            )}
           </Button>
           <Button onClick={() => navigateTo("export")}>
             <Download className="mr-2 h-4 w-4" />

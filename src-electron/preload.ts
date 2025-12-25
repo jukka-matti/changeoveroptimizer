@@ -36,6 +36,20 @@ contextBridge.exposeInMainWorld('electron', {
       'smed:get_logs',
       'smed:create_log',
       'smed:get_statistics',
+      // Analytics channels - Optimization History
+      'analytics:save_optimization_run',
+      'analytics:get_optimization_runs',
+      'analytics:get_optimization_run_by_id',
+      'analytics:delete_optimization_run',
+      'analytics:get_optimization_trends',
+      'analytics:get_top_optimization_runs',
+      'analytics:get_optimization_overview',
+      // Analytics channels - SMED Analytics
+      'analytics:get_smed_overview',
+      'analytics:get_study_comparison',
+      'analytics:get_improvement_trends',
+      'analytics:get_improvement_types',
+      'analytics:get_operation_breakdown',
     ];
 
     if (validChannels.includes(channel)) {

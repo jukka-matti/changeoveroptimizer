@@ -31,6 +31,19 @@ import {
   handleGetLogsByStudyId,
   handleCreateChangeoverLog,
   handleGetStudyStatistics,
+  // Analytics handlers
+  handleSaveOptimizationRun,
+  handleGetOptimizationRuns,
+  handleGetOptimizationRunById,
+  handleDeleteOptimizationRun,
+  handleGetOptimizationSavingsTrend,
+  handleGetTopOptimizationRuns,
+  handleGetOptimizationOverviewStats,
+  handleGetSmedOverviewStats,
+  handleGetStudyComparisonData,
+  handleGetImprovementTrends,
+  handleGetImprovementTypeDistribution,
+  handleGetOperationTypeBreakdown,
 } from './ipc-handlers';
 import { loadWindowState, saveWindowState } from './window-state';
 import { initDatabase, closeDatabase } from './db';
@@ -172,6 +185,22 @@ app.whenReady().then(() => {
   ipcMain.handle('smed:get_logs', handleGetLogsByStudyId);
   ipcMain.handle('smed:create_log', handleCreateChangeoverLog);
   ipcMain.handle('smed:get_statistics', handleGetStudyStatistics);
+
+  // Analytics IPC handlers - Optimization History
+  ipcMain.handle('analytics:save_optimization_run', handleSaveOptimizationRun);
+  ipcMain.handle('analytics:get_optimization_runs', handleGetOptimizationRuns);
+  ipcMain.handle('analytics:get_optimization_run_by_id', handleGetOptimizationRunById);
+  ipcMain.handle('analytics:delete_optimization_run', handleDeleteOptimizationRun);
+  ipcMain.handle('analytics:get_optimization_trends', handleGetOptimizationSavingsTrend);
+  ipcMain.handle('analytics:get_top_optimization_runs', handleGetTopOptimizationRuns);
+  ipcMain.handle('analytics:get_optimization_overview', handleGetOptimizationOverviewStats);
+
+  // Analytics IPC handlers - SMED Analytics
+  ipcMain.handle('analytics:get_smed_overview', handleGetSmedOverviewStats);
+  ipcMain.handle('analytics:get_study_comparison', handleGetStudyComparisonData);
+  ipcMain.handle('analytics:get_improvement_trends', handleGetImprovementTrends);
+  ipcMain.handle('analytics:get_improvement_types', handleGetImprovementTypeDistribution);
+  ipcMain.handle('analytics:get_operation_breakdown', handleGetOperationTypeBreakdown);
 
   createWindow();
 

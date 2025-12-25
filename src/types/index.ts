@@ -8,7 +8,8 @@ export type Screen =
   | "export"
   | "settings"
   | "smed"
-  | "timer";
+  | "timer"
+  | "analytics";
 
 export interface Order {
   id: string;

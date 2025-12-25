@@ -14,6 +14,7 @@ const ExportScreen = lazy(() => import("@/screens/ExportScreen").then(m => ({ de
 const SettingsScreen = lazy(() => import("@/screens/SettingsScreen").then(m => ({ default: m.SettingsScreen })));
 const StudiesListScreen = lazy(() => import("@/screens/smed/StudiesListScreen").then(m => ({ default: m.StudiesListScreen })));
 const TimerScreen = lazy(() => import("@/screens/smed/TimerScreen").then(m => ({ default: m.TimerScreen })));
+const AnalyticsDashboardScreen = lazy(() => import("@/screens/AnalyticsDashboardScreen").then(m => ({ default: m.AnalyticsDashboardScreen })));
 
 function App() {
   const { currentScreen } = useAppStore();
@@ -46,6 +47,8 @@ function App() {
         return <StudiesListScreen />;
       case "timer":
         return <TimerScreen onBack={() => useAppStore.getState().navigateTo('smed')} />;
+      case "analytics":
+        return <AnalyticsDashboardScreen />;
       default:
         return <WelcomeScreen />;
     }
