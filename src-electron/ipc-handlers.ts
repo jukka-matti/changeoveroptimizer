@@ -42,6 +42,19 @@ import {
   getImprovementTypeDistribution,
   getOperationTypeBreakdown,
 } from './db/queries/analytics';
+import {
+  getAllChangeoverAttributes,
+  getActiveChangeoverAttributes,
+  getChangeoverAttributeById,
+  upsertChangeoverAttribute,
+  deleteChangeoverAttribute,
+  getMatrixByAttribute,
+  upsertMatrixEntry,
+  deleteMatrixEntry,
+  batchGetChangeoverTimes,
+  prefetchMatrixData,
+  importFromSmedStandard,
+} from './db/queries/changeovers';
 import type { StoredTemplate } from './types';
 
 export async function handleGreet(
@@ -433,5 +446,129 @@ export async function handleGetOperationTypeBreakdown(event: IpcMainInvokeEvent)
     return getOperationTypeBreakdown();
   } catch (err) {
     throw new Error(`Failed to get operation type breakdown: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// ============================================================================
+// Changeover Matrix handlers
+// ============================================================================
+
+export async function handleGetAllChangeoverAttributes(event: IpcMainInvokeEvent) {
+  try {
+    return getAllChangeoverAttributes();
+  } catch (err) {
+    throw new Error(`Failed to get changeover attributes: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetActiveChangeoverAttributes(event: IpcMainInvokeEvent) {
+  try {
+    return getActiveChangeoverAttributes();
+  } catch (err) {
+    throw new Error(`Failed to get active changeover attributes: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetChangeoverAttributeById(event: IpcMainInvokeEvent, args: { id: string }) {
+  try {
+    return getChangeoverAttributeById(args.id);
+  } catch (err) {
+    throw new Error(`Failed to get changeover attribute: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleUpsertChangeoverAttribute(event: IpcMainInvokeEvent, args: { data: any }) {
+  try {
+    return upsertChangeoverAttribute(args.data);
+  } catch (err) {
+    throw new Error(`Failed to upsert changeover attribute: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleDeleteChangeoverAttribute(event: IpcMainInvokeEvent, args: { id: string }) {
+  try {
+    return deleteChangeoverAttribute(args.id);
+  } catch (err) {
+    throw new Error(`Failed to delete changeover attribute: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleGetMatrixByAttribute(event: IpcMainInvokeEvent, args: { attributeId: string }) {
+  try {
+    return getMatrixByAttribute(args.attributeId);
+  } catch (err) {
+    throw new Error(`Failed to get matrix entries: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleUpsertMatrixEntry(event: IpcMainInvokeEvent, args: { data: any }) {
+  try {
+    return upsertMatrixEntry(args.data);
+  } catch (err) {
+    throw new Error(`Failed to upsert matrix entry: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleDeleteMatrixEntry(event: IpcMainInvokeEvent, args: { id: string }) {
+  try {
+    return deleteMatrixEntry(args.id);
+  } catch (err) {
+    throw new Error(`Failed to delete matrix entry: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleBatchGetChangeoverTimes(
+  event: IpcMainInvokeEvent,
+  args: { lookups: Array<{ attributeName: string; fromValue: string; toValue: string }> }
+) {
+  try {
+    const result = batchGetChangeoverTimes(args.lookups);
+    // Convert Map to object for IPC serialization
+    return Object.fromEntries(result);
+  } catch (err) {
+    throw new Error(`Failed to batch get changeover times: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handlePrefetchMatrixData(
+  event: IpcMainInvokeEvent,
+  args: { attributeNames: string[]; valuesByAttribute: Record<string, string[]> }
+) {
+  try {
+    // Convert object to Map of Sets
+    const valuesMap = new Map<string, Set<string>>();
+    for (const [name, values] of Object.entries(args.valuesByAttribute)) {
+      valuesMap.set(name, new Set(values));
+    }
+    const result = prefetchMatrixData(args.attributeNames, valuesMap);
+    // Convert Map to object for IPC serialization
+    return Object.fromEntries(result);
+  } catch (err) {
+    throw new Error(`Failed to prefetch matrix data: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export async function handleImportFromSmedStandard(
+  event: IpcMainInvokeEvent,
+  args: {
+    attributeId: string;
+    fromValue: string;
+    toValue: string;
+    timeMinutes: number;
+    smedStudyId: string;
+    notes?: string;
+  }
+) {
+  try {
+    return importFromSmedStandard(
+      args.attributeId,
+      args.fromValue,
+      args.toValue,
+      args.timeMinutes,
+      args.smedStudyId,
+      args.notes
+    );
+  } catch (err) {
+    throw new Error(`Failed to import from SMED standard: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

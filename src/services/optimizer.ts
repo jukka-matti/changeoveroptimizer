@@ -1,18 +1,33 @@
-import { 
-  Order, 
-  AttributeConfig, 
-  OptimizedOrder, 
-  OptimizationResult, 
-  AttributeStat 
+import {
+  Order,
+  AttributeConfig,
+  OptimizedOrder,
+  OptimizationResult,
+  AttributeStat
 } from '@/types';
+
+/**
+ * Options for the optimizer.
+ */
+export interface OptimizeOptions {
+  /** Enable matrix lookup for value-specific changeover times */
+  useMatrixLookup?: boolean;
+  /** Pre-fetched matrix data: Map key = "attributeName:fromValue:toValue" -> timeMinutes */
+  matrixData?: Record<string, number>;
+}
 
 /**
  * Main optimization entry point.
  * Uses Hierarchical Greedy with Refinement (2-opt).
+ *
+ * @param orders - Orders to optimize
+ * @param attributes - Attribute configurations with default times
+ * @param options - Optional settings including matrix lookup data
  */
 export function optimize(
   orders: Order[],
-  attributes: AttributeConfig[]
+  attributes: AttributeConfig[],
+  options?: OptimizeOptions
 ): OptimizationResult {
   if (orders.length === 0) return createEmptyResult();
   if (orders.length === 1) return createSingleOrderResult(orders[0]);
@@ -27,10 +42,10 @@ export function optimize(
   const initialSequence = flattenGroupsOptimally(groups, prioritizedAttributes);
 
   // Phase 4: Refinement (2-opt local search)
-  const refinedSequence = applyLocalSearch(initialSequence, prioritizedAttributes);
+  const refinedSequence = applyLocalSearch(initialSequence, prioritizedAttributes, 100, options);
 
   // Phase 5: Final Calculations
-  return calculateOptimizationResult(orders, refinedSequence, prioritizedAttributes);
+  return calculateOptimizationResult(orders, refinedSequence, prioritizedAttributes, options);
 }
 
 interface OrderGroup {
@@ -96,13 +111,14 @@ function flattenGroupsOptimally(
 function applyLocalSearch(
   sequence: Order[],
   attributes: AttributeConfig[],
-  maxIterations: number = 100
+  maxIterations: number = 100,
+  options?: OptimizeOptions
 ): Order[] {
   if (sequence.length <= 2) return sequence;
 
   let current = [...sequence];
   // Optimize for downtime (production impact), not work time
-  let currentCost = calculateTotalChangeoverMetrics(current, attributes).totalDowntime;
+  let currentCost = calculateTotalChangeoverMetrics(current, attributes, options).totalDowntime;
   let improved = true;
   let iterations = 0;
 
@@ -115,7 +131,7 @@ function applyLocalSearch(
       const candidate = [...current];
       [candidate[i], candidate[i + 1]] = [candidate[i + 1], candidate[i]];
 
-      const candidateCost = calculateTotalChangeoverMetrics(candidate, attributes).totalDowntime;
+      const candidateCost = calculateTotalChangeoverMetrics(candidate, attributes, options).totalDowntime;
       if (candidateCost < currentCost) {
         current = candidate;
         currentCost = candidateCost;
@@ -134,6 +150,28 @@ interface ChangeoverMetrics {
 }
 
 /**
+ * Get changeover time for a specific transition.
+ * First tries matrix lookup, then falls back to attribute default.
+ */
+function getChangeoverTime(
+  attr: AttributeConfig,
+  fromValue: string,
+  toValue: string,
+  options?: OptimizeOptions
+): number {
+  // If matrix lookup is enabled and data is provided, try to find specific time
+  if (options?.useMatrixLookup && options.matrixData) {
+    const key = `${attr.column}:${fromValue}:${toValue}`;
+    const matrixTime = options.matrixData[key];
+    if (matrixTime !== undefined) {
+      return matrixTime;
+    }
+  }
+  // Fall back to default changeover time for this attribute
+  return attr.changeoverTime;
+}
+
+/**
  * Calculate changeover metrics between two orders.
  * workTime = sum of all attribute changeover times
  * downtime = max within each parallel group, then sum across groups
@@ -141,21 +179,26 @@ interface ChangeoverMetrics {
 function calculateChangeoverWithParallelism(
   prev: Order,
   curr: Order,
-  attributes: AttributeConfig[]
+  attributes: AttributeConfig[],
+  options?: OptimizeOptions
 ): ChangeoverMetrics {
   let workTime = 0;
   const reasons: string[] = [];
   const groupTimes = new Map<string, number>();
 
   for (const attr of attributes) {
-    if (prev.values[attr.column] !== curr.values[attr.column]) {
-      workTime += attr.changeoverTime;
+    const prevValue = String(prev.values[attr.column] ?? '');
+    const currValue = String(curr.values[attr.column] ?? '');
+
+    if (prevValue !== currValue) {
+      const time = getChangeoverTime(attr, prevValue, currValue, options);
+      workTime += time;
       reasons.push(attr.column);
 
       // Track max time per parallel group
       const group = attr.parallelGroup;
       const currentMax = groupTimes.get(group) ?? 0;
-      groupTimes.set(group, Math.max(currentMax, attr.changeoverTime));
+      groupTimes.set(group, Math.max(currentMax, time));
     }
   }
 
@@ -178,13 +221,14 @@ interface TotalMetrics {
  */
 function calculateTotalChangeoverMetrics(
   sequence: Order[],
-  attributes: AttributeConfig[]
+  attributes: AttributeConfig[],
+  options?: OptimizeOptions
 ): TotalMetrics {
   let totalWorkTime = 0;
   let totalDowntime = 0;
 
   for (let i = 1; i < sequence.length; i++) {
-    const metrics = calculateChangeoverWithParallelism(sequence[i - 1], sequence[i], attributes);
+    const metrics = calculateChangeoverWithParallelism(sequence[i - 1], sequence[i], attributes, options);
     totalWorkTime += metrics.workTime;
     totalDowntime += metrics.downtime;
   }
@@ -195,10 +239,11 @@ function calculateTotalChangeoverMetrics(
 function calculateOptimizationResult(
   original: Order[],
   optimized: Order[],
-  attributes: AttributeConfig[]
+  attributes: AttributeConfig[],
+  options?: OptimizeOptions
 ): OptimizationResult {
   // Calculate "before" metrics for original sequence
-  const beforeMetrics = calculateTotalChangeoverMetrics(original, attributes);
+  const beforeMetrics = calculateTotalChangeoverMetrics(original, attributes, options);
 
   // Build optimized orders with both work time and downtime
   const sequence: OptimizedOrder[] = optimized.map((order, index) => {
@@ -212,7 +257,7 @@ function calculateOptimizationResult(
         downtime: 0,
       };
     }
-    const metrics = calculateChangeoverWithParallelism(optimized[index - 1], order, attributes);
+    const metrics = calculateChangeoverWithParallelism(optimized[index - 1], order, attributes, options);
     return {
       ...order,
       sequenceNumber: index + 1,
@@ -240,13 +285,18 @@ function calculateOptimizationResult(
     : 0;
 
   // Per-attribute statistics with parallel group
+  // Note: When using matrix lookup, we need to track actual time used
   const attributeStats: AttributeStat[] = attributes.map(attr => {
     let count = 0;
     let time = 0;
-    sequence.forEach(order => {
-      if (order.changeoverReasons.includes(attr.column)) {
+    sequence.forEach((order, index) => {
+      if (order.changeoverReasons.includes(attr.column) && index > 0) {
         count++;
-        time += attr.changeoverTime;
+        // Get the actual time used for this transition
+        const prevOrder = optimized[index - 1];
+        const prevValue = String(prevOrder.values[attr.column] ?? '');
+        const currValue = String(order.values[attr.column] ?? '');
+        time += getChangeoverTime(attr, prevValue, currValue, options);
       }
     });
     return {

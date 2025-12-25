@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useLicenseStore, FREE_ORDER_LIMIT, FREE_ATTRIBUTE_LIMIT } from '@/stores/license-store';
+import { useLicenseStore, FREE_ORDER_LIMIT, FREE_ATTRIBUTE_LIMIT, type LicenseInfo } from '@/stores/license-store';
 import { useDataStore } from '@/stores/data-store';
-import type { ParsedFile, LicenseInfo } from '@/types';
+import type { ParsedFile } from '@/types';
 
 // Test helper: Create mock parsed file with specific row count
 function createMockFile(rowCount: number, columns = ['ID', 'Color', 'Size']): ParsedFile {

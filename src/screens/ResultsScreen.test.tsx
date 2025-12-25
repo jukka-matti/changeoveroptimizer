@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ResultsScreen } from './ResultsScreen';
-import type { OptimizationResult, ChangeoverConfig } from '@/services/optimizer';
+import type { OptimizationResult, AttributeConfig } from '@/types';
+
+interface ChangeoverConfig {
+  orderIdColumn: string;
+  attributes: AttributeConfig[];
+}
 
 // Mock dependencies
 vi.mock('@/stores/app-store');

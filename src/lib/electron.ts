@@ -8,7 +8,7 @@ export async function invoke<T>(command: string, args?: any): Promise<T> {
     if (command === "list_templates") return [] as any;
     return undefined as any;
   }
-  return await window.electron.invoke(command, args);
+  return await (window as any).electron.invoke(command, args);
 }
 
 export interface FileFilter {
@@ -27,7 +27,7 @@ export async function open(options: OpenDialogOptions): Promise<string | string[
     return null;
   }
 
-  const result = await window.electron.invoke('open_dialog', {
+  const result = await (window as any).electron.invoke('open_dialog', {
     filters: options.filters,
   });
 
@@ -45,7 +45,7 @@ export async function save(options: SaveDialogOptions): Promise<string | null> {
     return null;
   }
 
-  const result = await window.electron.invoke('save_dialog', {
+  const result = await (window as any).electron.invoke('save_dialog', {
     defaultPath: options.defaultPath,
     filters: options.filters,
   });

@@ -50,6 +50,18 @@ contextBridge.exposeInMainWorld('electron', {
       'analytics:get_improvement_trends',
       'analytics:get_improvement_types',
       'analytics:get_operation_breakdown',
+      // Changeover Matrix channels
+      'changeover:get_all_attributes',
+      'changeover:get_active_attributes',
+      'changeover:get_attribute_by_id',
+      'changeover:upsert_attribute',
+      'changeover:delete_attribute',
+      'changeover:get_matrix',
+      'changeover:upsert_entry',
+      'changeover:delete_entry',
+      'changeover:batch_lookup',
+      'changeover:prefetch_matrix',
+      'changeover:import_smed',
     ];
 
     if (validChannels.includes(channel)) {

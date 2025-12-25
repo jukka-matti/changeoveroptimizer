@@ -9,7 +9,8 @@ export type Screen =
   | "settings"
   | "smed"
   | "timer"
-  | "analytics";
+  | "analytics"
+  | "changeover-matrix";
 
 export interface Order {
   id: string;

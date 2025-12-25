@@ -8,3 +8,6 @@ export * from './smed';
 
 // Analytics schemas
 export * from './analytics';
+
+// Changeover matrix schemas
+export * from './changeovers';

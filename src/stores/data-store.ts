@@ -5,6 +5,7 @@ import { ParsedFile, AttributeConfig, OptimizationResult } from "@/types";
 interface DataConfig {
   orderIdColumn: string | null;
   attributes: AttributeConfig[];
+  useMatrixLookup: boolean;
 }
 
 interface DataState {
@@ -23,6 +24,7 @@ interface DataState {
   reorderAttributes: (fromIndex: number, toIndex: number) => void;
   setResult: (result: OptimizationResult) => void;
   setOptimizing: (isOptimizing: boolean) => void;
+  setUseMatrixLookup: (useMatrixLookup: boolean) => void;
   clearResult: () => void;
   reset: () => void;
 }
@@ -30,6 +32,7 @@ interface DataState {
 const initialConfig: DataConfig = {
   orderIdColumn: null,
   attributes: [],
+  useMatrixLookup: false,
 };
 
 export const useDataStore = create<DataState>()(
@@ -84,6 +87,9 @@ export const useDataStore = create<DataState>()(
     
     setResult: (result) => set({ result }),
     setOptimizing: (isOptimizing) => set({ isOptimizing }),
+    setUseMatrixLookup: (useMatrixLookup) => set((state) => {
+      state.config.useMatrixLookup = useMatrixLookup;
+    }),
     clearResult: () => set({ result: null }),
     reset: () => set({
       sourceFile: null,

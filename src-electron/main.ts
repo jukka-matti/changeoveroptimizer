@@ -44,6 +44,18 @@ import {
   handleGetImprovementTrends,
   handleGetImprovementTypeDistribution,
   handleGetOperationTypeBreakdown,
+  // Changeover matrix handlers
+  handleGetAllChangeoverAttributes,
+  handleGetActiveChangeoverAttributes,
+  handleGetChangeoverAttributeById,
+  handleUpsertChangeoverAttribute,
+  handleDeleteChangeoverAttribute,
+  handleGetMatrixByAttribute,
+  handleUpsertMatrixEntry,
+  handleDeleteMatrixEntry,
+  handleBatchGetChangeoverTimes,
+  handlePrefetchMatrixData,
+  handleImportFromSmedStandard,
 } from './ipc-handlers';
 import { loadWindowState, saveWindowState } from './window-state';
 import { initDatabase, closeDatabase } from './db';
@@ -201,6 +213,19 @@ app.whenReady().then(() => {
   ipcMain.handle('analytics:get_improvement_trends', handleGetImprovementTrends);
   ipcMain.handle('analytics:get_improvement_types', handleGetImprovementTypeDistribution);
   ipcMain.handle('analytics:get_operation_breakdown', handleGetOperationTypeBreakdown);
+
+  // Changeover Matrix IPC handlers
+  ipcMain.handle('changeover:get_all_attributes', handleGetAllChangeoverAttributes);
+  ipcMain.handle('changeover:get_active_attributes', handleGetActiveChangeoverAttributes);
+  ipcMain.handle('changeover:get_attribute_by_id', handleGetChangeoverAttributeById);
+  ipcMain.handle('changeover:upsert_attribute', handleUpsertChangeoverAttribute);
+  ipcMain.handle('changeover:delete_attribute', handleDeleteChangeoverAttribute);
+  ipcMain.handle('changeover:get_matrix', handleGetMatrixByAttribute);
+  ipcMain.handle('changeover:upsert_entry', handleUpsertMatrixEntry);
+  ipcMain.handle('changeover:delete_entry', handleDeleteMatrixEntry);
+  ipcMain.handle('changeover:batch_lookup', handleBatchGetChangeoverTimes);
+  ipcMain.handle('changeover:prefetch_matrix', handlePrefetchMatrixData);
+  ipcMain.handle('changeover:import_smed', handleImportFromSmedStandard);
 
   createWindow();
 

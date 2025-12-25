@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useAppStore } from "@/stores/app-store";
-import { FileSpreadsheet, Clock, ChevronRight, BarChart3, Wrench } from "lucide-react";
+import { FileSpreadsheet, Clock, ChevronRight, BarChart3, Wrench, Grid3X3 } from "lucide-react";
 import { FileDropzone } from "@/components/features/FileDropzone";
 import { useFileImport } from "@/hooks/useFileImport";
 import { useTranslation } from "react-i18next";
@@ -86,7 +86,7 @@ export function WelcomeScreen() {
       </div>
 
       {/* Module Navigation */}
-      <div className="grid grid-cols-1 normal:grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-1 normal:grid-cols-3 gap-4 w-full">
         <Card
           className="hover:border-primary cursor-pointer transition-colors"
           onClick={() => navigateTo('smed')}
@@ -103,6 +103,27 @@ export function WelcomeScreen() {
           <CardContent>
             <Button variant="outline" size="sm" className="w-full">
               Open SMED Studies
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="hover:border-primary cursor-pointer transition-colors"
+          onClick={() => navigateTo('changeover-matrix')}
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Grid3X3 className="h-4 w-4 text-muted-foreground" />
+              Changeover Matrix
+            </CardTitle>
+            <CardDescription>
+              Define value-specific changeover times
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" className="w-full">
+              Edit Matrix
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </CardContent>
