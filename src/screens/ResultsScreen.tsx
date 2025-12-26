@@ -18,6 +18,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer, Save, Check } from "lucide-react";
 import { ResultsChart } from "@/components/features/ResultsChart";
 import { getParallelGroupBorder } from "@/lib/parallel-groups";
+import { useCelebration } from "@/hooks/useCelebration";
+import { SuccessBanner } from "@/components/ui/success-banner";
 
 export function ResultsScreen() {
   const { navigateTo } = useAppStore();
@@ -25,6 +27,7 @@ export function ResultsScreen() {
   const { saveOptimizationRun } = useAnalyticsStore();
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { tier, config: celebrationConfig, shouldShow, dismiss } = useCelebration(result);
 
   const handleSaveToHistory = async () => {
     if (!result || isSaved) return;
@@ -101,6 +104,16 @@ export function ResultsScreen() {
         </div>
       </div>
 
+      {/* Success Celebration Banner */}
+      {shouldShow && celebrationConfig && tier !== "none" && (
+        <SuccessBanner
+          tier={tier}
+          headline={celebrationConfig.headline}
+          description={celebrationConfig.description}
+          onDismiss={dismiss}
+        />
+      )}
+
       {/* Summary Cards - Primary: Downtime (Production Impact) */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -124,11 +137,12 @@ export function ResultsScreen() {
           />
           <MetricCard
             title="Downtime Saved"
-            value={`-${result.downtimeSavings} min`}
+            value={`${result.downtimeSavings} min`}
             description={`${result.downtimeSavingsPercent}% reduction`}
             subValue={result.savings !== result.downtimeSavings ? `(Work: ${result.savingsPercent}%)` : undefined}
             icon={TrendingDown}
             variant="success"
+            celebrate={tier !== "none"}
           />
           <MetricCard
             title="Orders"

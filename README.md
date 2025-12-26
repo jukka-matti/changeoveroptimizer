@@ -20,6 +20,19 @@ This package contains everything needed for AI coding agents (Claude Code, Curso
    ```bash
    npm run electron:build
    ```
+   npm run electron:build
+   ```
+
+## Key Features
+
+### 🧠 Intelligent Defaults
+The system learns from your behavior. Configure "Color Change" as 15 minutes once, and it will auto-detect and apply that standard to all future files.
+
+### 🔄 Live Link (Virtuous Cycle)
+Seamless integration between SMED (Analysis) and Optimization (Automation).
+1.  **Analyze**: Reduce a changeover in the SMED module.
+2.  **Publish**: Click "Publish Standard".
+3.  **Sync**: The Optimizer automatically updates its rules with the new standard time.
 
 ## File Purposes
 

@@ -19,6 +19,8 @@ export interface MetricCardProps {
   subValue?: string;
   /** Additional class name for the card */
   className?: string;
+  /** Enable celebration animation (pulsing glow effect) */
+  celebrate?: boolean;
 }
 
 const variantStyles: Record<MetricCardVariant, {
@@ -80,11 +82,13 @@ export function MetricCard({
   variant = "default",
   subValue,
   className,
+  celebrate = false,
 }: MetricCardProps) {
   const styles = variantStyles[variant];
+  const shouldCelebrate = celebrate && variant === "success";
 
   return (
-    <Card className={cn(styles.card, className)}>
+    <Card className={cn(styles.card, shouldCelebrate && "animate-pulse-glow", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {Icon && <Icon className={cn("h-4 w-4", styles.icon)} />}

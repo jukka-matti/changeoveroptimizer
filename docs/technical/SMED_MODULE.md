@@ -57,9 +57,21 @@ See [DATA_MODEL.md - SMED Module Tables](DATA_MODEL.md#smed-module-tables) for c
 - [ ] Performance analytics
 
 ### Integration
-- [ ] Feed standard times to changeover matrix
-- [ ] Auto-update optimizer with SMED improvements
+- [x] Feed standard times to changeover matrix (Live Link)
+- [x] Auto-update optimizer with SMED improvements
 - [ ] Pro license tier verification
+
+### 7. Live Link & Smart Feedback (Implemented Phase 2)
+The "Live Link" feature creates a virtuous cycle between SMED analysis and the Global Optimizer.
+
+**Workflow:**
+1.  **Analyze**: User performs SMED study on a "Color Change".
+2.  **Optimize**: Reduces time from 20m -> 15m.
+3.  **Publish**: When publishing the Standard, user sees a **Smart Preview**.
+    *   *Preview*: "Impact: 20m -> 15m (Color Change)".
+    *   *Action*: User explicitly confirms the update.
+4.  **Sync**: The system updates the global `ChangeoverAttribute` or `ChangeoverMatrix`.
+5.  **Result**: The next optimized schedule automatically uses the new 15m standard.
 
 ---
 

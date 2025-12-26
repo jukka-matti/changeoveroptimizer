@@ -24,6 +24,7 @@ export function StudyStandardWorkTab({ studyId }: StudyStandardWorkTabProps) {
     createStandardFromSteps,
     publishStandard,
     deactivateStandard,
+    currentStudy,
   } = useSmedStore();
 
   const [isPublishFormOpen, setIsPublishFormOpen] = useState(false);
@@ -179,6 +180,8 @@ export function StudyStandardWorkTab({ studyId }: StudyStandardWorkTabProps) {
         isOpen={isPublishFormOpen}
         onClose={() => setIsPublishFormOpen(false)}
         onSubmit={handlePublish}
+        changeoverType={currentStudy?.changeoverType}
+        newStandardTime={currentSteps.reduce((sum, step) => sum + (step.durationSeconds / 60), 0)}
       />
     </div>
   );

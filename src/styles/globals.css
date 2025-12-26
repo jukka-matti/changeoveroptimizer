@@ -118,5 +118,42 @@
   .space-fluid-8 {
     gap: clamp(2rem, 2.5vw, 4rem); /* 32px - 64px */
   }
+
+  /* Celebration animations */
+  @keyframes slideInDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 oklch(0.55 0.15 145 / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px 4px oklch(0.55 0.15 145 / 0.2);
+    }
+  }
+
+  .animate-slide-in-down {
+    animation: slideInDown 0.5s ease-out;
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-in-down,
+    .animate-pulse-glow {
+      animation: none;
+    }
+  }
 }
 

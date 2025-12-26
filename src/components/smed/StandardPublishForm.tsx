@@ -5,18 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, X, ArrowRight, Info } from 'lucide-react';
 import type { StandardPublishData } from '@/types/smed';
+import { changeoverIpc } from '@/lib/electron-ipc';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface StandardPublishFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: StandardPublishData) => Promise<void>;
+  changeoverType?: string | null;
+  newStandardTime?: number;
 }
 
-export function StandardPublishForm({ isOpen, onClose, onSubmit }: StandardPublishFormProps) {
+export function StandardPublishForm({ isOpen, onClose, onSubmit, changeoverType, newStandardTime }: StandardPublishFormProps) {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentOptimizerTime, setCurrentOptimizerTime] = useState<number | null>(null);
 
   // Form state
   const [toolsRequired, setToolsRequired] = useState<string[]>([]);
@@ -24,6 +30,7 @@ export function StandardPublishForm({ isOpen, onClose, onSubmit }: StandardPubli
   const [safetyPrecautions, setSafetyPrecautions] = useState('');
   const [publishedBy, setPublishedBy] = useState('');
   const [notes, setNotes] = useState('');
+  const [updateOptimizer, setUpdateOptimizer] = useState(true);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -33,8 +40,19 @@ export function StandardPublishForm({ isOpen, onClose, onSubmit }: StandardPubli
       setSafetyPrecautions('');
       setPublishedBy('');
       setNotes('');
+      setUpdateOptimizer(true);
+      setCurrentOptimizerTime(null);
+
+      // Fetch current optimizer time for comparison
+      if (changeoverType) {
+        changeoverIpc.getAttributeByName(changeoverType).then((attr) => {
+          if (attr) {
+            setCurrentOptimizerTime(attr.defaultMinutes);
+          }
+        });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, changeoverType]);
 
   const handleAddTool = () => {
     if (newTool.trim()) {
@@ -57,6 +75,7 @@ export function StandardPublishForm({ isOpen, onClose, onSubmit }: StandardPubli
         safetyPrecautions: safetyPrecautions.trim() || undefined,
         publishedBy: publishedBy.trim() || undefined,
         notes: notes.trim() || undefined,
+        updateOptimizer,
       });
       onClose();
     } catch (error) {
@@ -144,6 +163,49 @@ export function StandardPublishForm({ isOpen, onClose, onSubmit }: StandardPubli
               placeholder={t('smed.notes_placeholder')}
               rows={2}
             />
+          </div>
+
+          {/* Update Optimizer Rules */}
+          <div className="space-y-3 border p-3 rounded-md bg-muted/20">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="update-optimizer"
+                checked={updateOptimizer}
+                onCheckedChange={setUpdateOptimizer}
+              />
+              <div className="flex-1">
+                <Label htmlFor="update-optimizer" className="font-medium cursor-pointer">
+                  {t('smed.update_optimizer_rules', 'Update Optimizer Rules')}
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {t('smed.update_optimizer_rules_desc', 'Automatically update the Optimizer Matrix with this standard time.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Smart Preview */}
+            {updateOptimizer && changeoverType && newStandardTime !== undefined && (
+              <Alert className="bg-background border-muted">
+                <Info className="h-4 w-4 text-blue-500" />
+                <AlertDescription className="text-xs text-muted-foreground flex items-center gap-2">
+                  <span>{t('smed.impact_preview', 'Impact:')}</span>
+                  {currentOptimizerTime !== null ? (
+                    <>
+                      <span className="line-through">{Math.round(currentOptimizerTime)}m</span>
+                      <ArrowRight className="h-3 w-3" />
+                      <span className="font-bold text-green-600">{Math.round(newStandardTime)}m</span>
+                      <span className="text-muted-foreground ml-1">
+                        ({changeoverType})
+                      </span>
+                    </>
+                  ) : (
+                    <span>
+                      {t('smed.new_rule_creation', 'New rule will be created for')} <strong>{changeoverType}</strong> ({Math.round(newStandardTime)}m)
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <DialogFooter>

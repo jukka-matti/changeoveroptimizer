@@ -6,6 +6,8 @@ import { FileDropzone } from "@/components/features/FileDropzone";
 import { useFileImport } from "@/hooks/useFileImport";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { ScreenLayout } from "@/components/layout/ScreenLayout";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export function WelcomeScreen() {
   const { t } = useTranslation();
@@ -14,7 +16,7 @@ export function WelcomeScreen() {
   const { navigateTo } = useAppStore();
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-12 max-w-container-normal mx-auto py-8 px-6">
+    <ScreenLayout className="flex flex-col items-center justify-center space-y-12">
       <div className="text-center space-y-4">
         <h1 className="text-fluid-4xl font-extrabold tracking-tight text-primary">
           {t('welcome.title')}
@@ -57,10 +59,13 @@ export function WelcomeScreen() {
             </CardHeader>
             <CardContent>
               {recentFiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center space-y-2 opacity-50">
-                  <FileSpreadsheet className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm">{t('welcome.no_recent_files')}</p>
-                </div>
+                <EmptyState
+                  icon={Clock}
+                  title={t('welcome.no_recent_files')}
+                  description="Files you open will appear here for quick access."
+                  variant="compact"
+                  className="opacity-70"
+                />
               ) : (
                 <div className="space-y-2">
                   {recentFiles.map((file) => (
@@ -150,6 +155,6 @@ export function WelcomeScreen() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </ScreenLayout>
   );
 }

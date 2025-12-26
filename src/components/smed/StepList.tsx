@@ -9,16 +9,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Edit, Trash2, ClipboardList, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface StepListProps {
   steps: Step[];
   onEdit: (step: Step) => void;
   onDelete: (stepId: string) => void;
+  onAdd?: () => void;
 }
 
-export function StepList({ steps, onEdit, onDelete }: StepListProps) {
+export function StepList({ steps, onEdit, onDelete, onAdd }: StepListProps) {
   const { t } = useTranslation();
 
   // Format duration
@@ -36,14 +38,19 @@ export function StepList({ steps, onEdit, onDelete }: StepListProps) {
 
   if (steps.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg border-dashed">
-        <p className="text-muted-foreground mb-2">
-          {t("smed.no_steps")}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Click "Add Step" to create your first changeover step
-        </p>
-      </div>
+      <EmptyState
+        icon={ClipboardList}
+        badgeIcon={Plus}
+        title={t("smed.no_steps")}
+        description="Break down the changeover into individual steps to identify improvement opportunities."
+        action={onAdd ? {
+          label: t("smed.add_step"),
+          onClick: onAdd,
+          icon: Plus,
+        } : undefined}
+        hint="Tip: Classify each step as internal (machine stopped) or external (machine running)"
+        variant="card"
+      />
     );
   }
 

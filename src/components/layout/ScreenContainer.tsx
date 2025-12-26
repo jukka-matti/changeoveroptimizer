@@ -6,18 +6,32 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
+import { ProgressStepper, isWorkflowScreen } from "@/components/ui/progress-stepper";
 
 interface ScreenContainerProps {
   children: React.ReactNode;
 }
 
 export function ScreenContainer({ children }: ScreenContainerProps) {
-  const { isLoading, loadingMessage, error, clearError } = useAppStore();
+  const { isLoading, loadingMessage, error, clearError, currentScreen, navigateTo } = useAppStore();
+  const showStepper = isWorkflowScreen(currentScreen);
 
   return (
     <div className="relative flex min-h-screen flex-col min-w-[800px]">
       <Header />
-      
+
+      {/* Progress Stepper - only for workflow screens */}
+      {showStepper && (
+        <div className="border-b bg-muted/30 py-4">
+          <div className="max-w-container-normal mx-auto px-6">
+            <ProgressStepper
+              currentStep={currentScreen}
+              onStepClick={(step) => navigateTo(step)}
+            />
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 py-8 relative max-w-container-normal mx-auto px-6">
         {/* Error Alert */}
         {error && (

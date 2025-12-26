@@ -253,4 +253,5 @@ export interface StandardPublishData {
   visualAids?: string[];
   publishedBy?: string;
   notes?: string;
+  updateOptimizer?: boolean;
 }

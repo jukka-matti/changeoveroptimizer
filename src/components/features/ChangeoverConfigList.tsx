@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useDataStore } from '@/stores/data-store';
+import { useAppStore } from '@/stores/app-store';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { GripVertical, Clock, ChevronUp, ChevronDown, Info } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { GripVertical, Clock, ChevronUp, ChevronDown, Info, Layers, ArrowLeft } from 'lucide-react';
 
 const PARALLEL_GROUPS = ['default', 'A', 'B', 'C', 'D'] as const;
 
@@ -25,6 +27,7 @@ const groupColors: Record<string, string> = {
 
 export function ChangeoverConfigList() {
   const { config, updateAttributeTime, setAttributeParallelGroup, reorderAttributes } = useDataStore();
+  const { navigateTo } = useAppStore();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -79,9 +82,18 @@ export function ChangeoverConfigList() {
         </CardHeader>
         <CardContent className="space-y-4">
           {config.attributes.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">
-              No attributes selected. Go back to Column Mapping to select attributes.
-            </p>
+            <EmptyState
+              icon={Layers}
+              title="No attributes selected"
+              description="Go back to Column Mapping to select which attributes affect changeover time."
+              action={{
+                label: "Go to Column Mapping",
+                onClick: () => navigateTo("column-mapping"),
+                icon: ArrowLeft,
+                variant: "outline",
+              }}
+              variant="card"
+            />
           ) : (
             <div className="space-y-4">
               {config.attributes.map((attr, index) => (

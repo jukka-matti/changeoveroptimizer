@@ -94,7 +94,7 @@ interface IpcChannelMap {
   'smed:get_active_standard': { args: { studyId: string }; result: Standard | null };
   'smed:create_standard': { args: { data: Partial<Standard> }; result: Standard };
   'smed:update_standard': { args: { id: string; data: Partial<Standard> }; result: void };
-  'smed:publish_standard': { args: { standardId: string }; result: void };
+  'smed:publish_standard': { args: { standardId: string; updateOptimizer?: boolean }; result: void };
   'smed:deactivate_standard': { args: { standardId: string }; result: void };
 
   // SMED Log operations
@@ -121,20 +121,21 @@ interface IpcChannelMap {
   'analytics:get_operation_breakdown': { args: void; result: OperationTypeBreakdown };
 
   // Changeover Matrix
-  'changeover:get_all_attributes': { args: void; result: ChangeoverAttribute[] };
-  'changeover:get_active_attributes': { args: void; result: ChangeoverAttribute[] };
-  'changeover:get_attribute_by_id': { args: { id: string }; result: ChangeoverAttribute | null };
-  'changeover:upsert_attribute': { args: { data: ChangeoverAttributeInput }; result: ChangeoverAttribute };
-  'changeover:delete_attribute': { args: { id: string }; result: void };
-  'changeover:get_matrix': { args: { attributeId: string }; result: ChangeoverMatrixEntry[] };
-  'changeover:upsert_entry': { args: { data: ChangeoverMatrixEntryInput }; result: ChangeoverMatrixEntry };
-  'changeover:delete_entry': { args: { id: string }; result: void };
-  'changeover:batch_lookup': { args: { lookups: ChangeoverLookup[] }; result: Record<string, number> };
-  'changeover:prefetch_matrix': {
+  'changeovers:get_all_attributes': { args: void; result: ChangeoverAttribute[] };
+  'changeovers:get_active_attributes': { args: void; result: ChangeoverAttribute[] };
+  'changeovers:get_attribute_by_id': { args: { id: string }; result: ChangeoverAttribute | null };
+  'changeovers:get_attribute_by_name': { args: { name: string }; result: ChangeoverAttribute | null };
+  'changeovers:upsert_attribute': { args: { data: ChangeoverAttributeInput }; result: ChangeoverAttribute };
+  'changeovers:delete_attribute': { args: { id: string }; result: void };
+  'changeovers:get_matrix': { args: { attributeId: string }; result: ChangeoverMatrixEntry[] };
+  'changeovers:upsert_entry': { args: { data: ChangeoverMatrixEntryInput }; result: ChangeoverMatrixEntry };
+  'changeovers:delete_entry': { args: { id: string }; result: void };
+  'changeovers:batch_lookup': { args: { lookups: ChangeoverLookup[] }; result: Record<string, number> };
+  'changeovers:prefetch_matrix': {
     args: { attributeNames: string[]; valuesByAttribute: Record<string, string[]> };
     result: Record<string, number>;
   };
-  'changeover:import_smed': { args: SmedImportArgs; result: ChangeoverMatrixEntry };
+  'changeovers:import_smed': { args: SmedImportArgs; result: ChangeoverMatrixEntry };
 }
 
 type IpcChannel = keyof IpcChannelMap;
@@ -158,6 +159,27 @@ export async function ipcInvoke<C extends IpcChannel>(
   // Handle non-Electron environment (development in browser)
   if (typeof window === 'undefined' || !window.electron) {
     console.warn(`[Electron Shim] IPC not available for: ${channel}`);
+
+    // Mocks for browser testing
+    if (channel === 'changeovers:get_all_attributes') {
+      return [
+        { id: 'mock-1', name: 'Color', displayName: 'Color Change', hierarchyLevel: 1, defaultMinutes: 15, parallelGroup: 'A', isActive: true },
+        { id: 'mock-2', name: 'Material', displayName: 'Material Change', hierarchyLevel: 2, defaultMinutes: 45, parallelGroup: 'B', isActive: true },
+      ] as any;
+    }
+    if (channel === 'changeovers:get_attribute_by_name') {
+      const argsTyped = args[0] as any;
+      if (argsTyped?.name === 'Color' || argsTyped?.name === 'Material') {
+        return { id: 'mock-1', name: argsTyped.name, displayName: argsTyped.name + ' Change', defaultMinutes: 15, parallelGroup: 'A' } as any;
+      }
+      return null as any;
+    }
+
+    if (channel === 'smed:publish_standard') {
+      console.log('[Electron Shim] Mocking publish_standard', args);
+      return undefined as any;
+    }
+
     return undefined as IpcChannelMap[C]['result'];
   }
 
@@ -202,8 +224,8 @@ export const smedIpc = {
     ipcInvoke('smed:create_standard', { data }),
   updateStandard: (id: string, data: Partial<Standard>) =>
     ipcInvoke('smed:update_standard', { id, data } as any),
-  publishStandard: (standardId: string) =>
-    ipcInvoke('smed:publish_standard', { standardId }),
+  publishStandard: (standardId: string, updateOptimizer?: boolean) =>
+    ipcInvoke('smed:publish_standard', { standardId, updateOptimizer }),
   deactivateStandard: (standardId: string) =>
     ipcInvoke('smed:deactivate_standard', { standardId }),
 
@@ -248,27 +270,29 @@ export const analyticsIpc = {
  * Changeover Matrix-related IPC calls
  */
 export const changeoverIpc = {
-  getAllAttributes: () => ipcInvoke('changeover:get_all_attributes'),
-  getActiveAttributes: () => ipcInvoke('changeover:get_active_attributes'),
+  getAllAttributes: () => ipcInvoke('changeovers:get_all_attributes'),
+  getActiveAttributes: () => ipcInvoke('changeovers:get_active_attributes'),
   getAttributeById: (id: string) =>
-    ipcInvoke('changeover:get_attribute_by_id', { id }),
+    ipcInvoke('changeovers:get_attribute_by_id', { id }),
+  getAttributeByName: (name: string) =>
+    ipcInvoke('changeovers:get_attribute_by_name', { name }),
   upsertAttribute: (data: ChangeoverAttributeInput) =>
-    ipcInvoke('changeover:upsert_attribute', { data }),
+    ipcInvoke('changeovers:upsert_attribute', { data }),
   deleteAttribute: (id: string) =>
-    ipcInvoke('changeover:delete_attribute', { id }),
+    ipcInvoke('changeovers:delete_attribute', { id }),
   getMatrix: (attributeId: string) =>
-    ipcInvoke('changeover:get_matrix', { attributeId }),
+    ipcInvoke('changeovers:get_matrix', { attributeId }),
   upsertEntry: (data: ChangeoverMatrixEntryInput) =>
-    ipcInvoke('changeover:upsert_entry', { data }),
-  deleteEntry: (id: string) => ipcInvoke('changeover:delete_entry', { id }),
+    ipcInvoke('changeovers:upsert_entry', { data }),
+  deleteEntry: (id: string) => ipcInvoke('changeovers:delete_entry', { id }),
   batchLookup: (lookups: ChangeoverLookup[]) =>
-    ipcInvoke('changeover:batch_lookup', { lookups }),
+    ipcInvoke('changeovers:batch_lookup', { lookups }),
   prefetchMatrix: (
     attributeNames: string[],
     valuesByAttribute: Record<string, string[]>
-  ) => ipcInvoke('changeover:prefetch_matrix', { attributeNames, valuesByAttribute }),
+  ) => ipcInvoke('changeovers:prefetch_matrix', { attributeNames, valuesByAttribute }),
   importFromSmed: (args: SmedImportArgs) =>
-    ipcInvoke('changeover:import_smed', args),
+    ipcInvoke('changeovers:import_smed', args),
 };
 
 /**

@@ -3,6 +3,7 @@ import { useAppStore } from '@/stores/app-store';
 import { useDataStore, useOrders } from '@/stores/data-store';
 import { optimize, OptimizeOptions } from '@/services/optimizer';
 import { telemetry } from '@/services/telemetry';
+import { changeoverIpc } from '@/lib/electron-ipc';
 import type { Order } from '@/types';
 
 /**
@@ -26,10 +27,7 @@ async function prefetchMatrixData(
   }
 
   try {
-    const result = await (window as any).electron.invoke('changeover:prefetch_matrix', {
-      attributeNames,
-      valuesByAttribute,
-    });
+    const result = await changeoverIpc.prefetchMatrix(attributeNames, valuesByAttribute);
     return result as Record<string, number>;
   } catch (err) {
     console.error('Failed to prefetch matrix data:', err);
@@ -58,6 +56,18 @@ export function useOptimization() {
         const matrixData = await prefetchMatrixData(orders, attributeNames);
         options.matrixData = matrixData;
       }
+
+      // Implicit Learning: Save current attribute configuration for future auto-detection
+      config.attributes.forEach(attr => {
+        changeoverIpc.upsertAttribute({
+          name: attr.column,
+          displayName: attr.column,
+          hierarchyLevel: 1,
+          defaultMinutes: attr.changeoverTime,
+          parallelGroup: attr.parallelGroup || 'default',
+          isActive: true
+        }).catch(e => console.warn('Failed to auto-learn attribute:', attr.column, e));
+      });
 
       // Add a small delay for UI feedback
       await new Promise(resolve => setTimeout(resolve, 800));
