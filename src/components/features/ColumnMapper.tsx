@@ -66,7 +66,7 @@ export function ColumnMapper() {
               value={config.orderIdColumn || ''}
               onValueChange={setOrderIdColumn}
             >
-              <SelectTrigger className="w-[300px]">
+              <SelectTrigger className="w-full max-w-[300px]">
                 <SelectValue placeholder="Select column..." />
               </SelectTrigger>
               <SelectContent>

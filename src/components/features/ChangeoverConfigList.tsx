@@ -162,7 +162,7 @@ export function ChangeoverConfigList() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-[200px]">
+                    <div className="flex items-center gap-3 w-full max-w-[200px]">
                       <div className="relative flex-1">
                         <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -178,7 +178,7 @@ export function ChangeoverConfigList() {
                       <span className="text-sm font-medium text-muted-foreground">min</span>
                     </div>
 
-                    <div className="w-[100px]">
+                    <div className="w-full max-w-[100px]">
                       <Select
                         value={attr.parallelGroup}
                         onValueChange={(value) => setAttributeParallelGroup(attr.column, value)}

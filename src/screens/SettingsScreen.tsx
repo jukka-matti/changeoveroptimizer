@@ -70,7 +70,7 @@ export function SettingsScreen() {
             <div className="space-y-3">
               <Label>Language</Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full max-w-[200px]">
                   <Languages className="mr-2 h-4 w-4 text-muted-foreground" />
                   <SelectValue placeholder="Select Language" />
                 </SelectTrigger>
