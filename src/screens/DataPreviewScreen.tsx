@@ -1,20 +1,36 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { useDataStore } from "@/stores/data-store";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import { useConfigStore } from "@/stores/config-store";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, FileText } from "lucide-react";
+import { ConfigRecognitionPrompt } from "@/components/features/ConfigRecognitionPrompt";
 
 export function DataPreviewScreen() {
   const { navigateTo } = useAppStore();
   const { sourceFile } = useDataStore();
+  const { checkForMatchingConfig, reset: resetConfig } = useConfigStore();
+
+  // Check for matching configuration when file is loaded
+  useEffect(() => {
+    if (sourceFile?.columns) {
+      checkForMatchingConfig(sourceFile.columns);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      resetConfig();
+    };
+  }, [sourceFile?.columns, checkForMatchingConfig, resetConfig]);
 
   if (!sourceFile) {
     return (
@@ -48,6 +64,11 @@ export function DataPreviewScreen() {
           </Button>
         </div>
       </div>
+
+      {/* Auto-configuration recognition prompt */}
+      <ConfigRecognitionPrompt
+        onReviewSettings={() => navigateTo("column-mapping")}
+      />
 
       <Card>
         <CardHeader>

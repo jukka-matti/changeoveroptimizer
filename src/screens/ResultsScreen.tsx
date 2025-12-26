@@ -15,7 +15,9 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer, Save, Check } from "lucide-react";
+import { ArrowLeft, Download, Info, TrendingDown, Clock, Layers, Timer, Save, Check, Upload } from "lucide-react";
+import { openFileDialog } from '@/lib/electron';
+import { parseFile } from "@/services/parser";
 import { ResultsChart } from "@/components/features/ResultsChart";
 import { getParallelGroupBorder } from "@/lib/parallel-groups";
 import { useCelebration } from "@/hooks/useCelebration";
@@ -23,11 +25,35 @@ import { SuccessBanner } from "@/components/ui/success-banner";
 
 export function ResultsScreen() {
   const { navigateTo } = useAppStore();
-  const { result, config, sourceFile } = useDataStore();
+  const { result, config, sourceFile, replaceSourceFile } = useDataStore();
   const { saveOptimizationRun } = useAnalyticsStore();
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReimporting, setIsReimporting] = useState(false);
   const { tier, config: celebrationConfig, shouldShow, dismiss } = useCelebration(result);
+
+  const handleReimport = async () => {
+    try {
+      setIsReimporting(true);
+      const result = await openFileDialog();
+      if (result) {
+        const buffer = result.data.buffer as ArrayBuffer;
+        const name = result.path.split(/[/\\]/).pop() ?? 'unknown';
+
+        const parseResult = await parseFile(buffer, name);
+        if (parseResult.ok) {
+          const parsedFile = parseResult.data;
+          parsedFile.path = result.path;
+          replaceSourceFile(parsedFile);
+          navigateTo('data-preview');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to import file:', error);
+    } finally {
+      setIsReimporting(false);
+    }
+  };
 
   const handleSaveToHistory = async () => {
     if (!result || isSaved) return;
@@ -76,6 +102,14 @@ export function ResultsScreen() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={handleReimport}
+            disabled={isReimporting}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {isReimporting ? 'Importing...' : 'Import New File'}
+          </Button>
           <Button variant="outline" onClick={() => navigateTo("changeover-config")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
@@ -114,14 +148,29 @@ export function ResultsScreen() {
         />
       )}
 
-      {/* Summary Cards - Primary: Downtime (Production Impact) */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {/* Primary Headline - The ONE key number */}
+      <Card className="bg-gradient-to-r from-success-50 to-success-100/50 border-success-200">
+        <CardContent className="py-6">
+          <div className="text-center space-y-2">
+            <p className="text-sm font-medium text-success-700">Optimization Complete</p>
+            <p className="text-fluid-4xl font-bold text-success-800">
+              You'll save {result.downtimeSavings} minutes
+            </p>
+            <p className="text-fluid-lg text-success-700">
+              {result.downtimeSavingsPercent}% reduction in changeover downtime
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Metrics - Secondary */}
+      <details className="group">
+        <summary className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer list-none">
           <Timer className="h-4 w-4" />
-          <span className="font-medium">Downtime</span>
-          <span>(Production line stopped)</span>
-        </div>
-        <div className="grid grid-cols-1 normal:grid-cols-2 wide:grid-cols-4 gap-4">
+          <span className="font-medium">View detailed breakdown</span>
+          <span className="text-xs">(click to expand)</span>
+        </summary>
+        <div className="mt-4 grid grid-cols-1 normal:grid-cols-2 wide:grid-cols-4 gap-4">
           <MetricCard
             title="Original Downtime"
             value={`${result.totalDowntimeBefore} min`}
@@ -151,7 +200,7 @@ export function ResultsScreen() {
             icon={Layers}
           />
         </div>
-      </div>
+      </details>
 
       <div className="grid grid-cols-1 gap-8">
         {/* Visual Charts */}

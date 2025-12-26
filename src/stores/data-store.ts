@@ -13,8 +13,9 @@ interface DataState {
   config: DataConfig;
   result: OptimizationResult | null;
   isOptimizing: boolean;
-  
+
   setSourceFile: (file: ParsedFile) => void;
+  replaceSourceFile: (file: ParsedFile) => void; // Keep config, just replace file
   clearSourceFile: () => void;
   setOrderIdColumn: (column: string) => void;
   addAttribute: (column: string, changeoverTime: number) => void;
@@ -48,6 +49,11 @@ export const useDataStore = create<DataState>()(
       state.result = null;
     }),
     
+    replaceSourceFile: (file) => set((state) => {
+      state.sourceFile = file;
+      state.result = null; // Clear old results but keep config
+    }),
+
     clearSourceFile: () => set((state) => {
       state.sourceFile = null;
       state.config = initialConfig;

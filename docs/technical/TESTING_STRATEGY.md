@@ -10,6 +10,7 @@ Comprehensive testing approach for ChangeoverOptimizer Electron application.
 - [Running Tests](#running-tests)
 - [CI/CD Integration](#cicd-integration)
 - [Testing Checklist](#testing-checklist)
+- [Manual Testing](#manual-testing)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -313,6 +314,67 @@ When adding a new feature, ensure:
 - [ ] Type check passes: `npm run typecheck`
 - [ ] Coverage maintained: `npm run test:coverage`
 - [ ] CI/CD workflow passes
+
+---
+
+## Manual Testing
+
+### Browser Dev Mode (npm run dev)
+
+For rapid UI development and manual testing without Electron overhead.
+
+**Start:**
+```bash
+npm run dev
+# Open http://localhost:5173
+```
+
+**Quick Test Flow:**
+1. Click **"Load Example Schedule"** on Welcome screen
+2. Data Preview → Next
+3. Column Mapping → Select Color, Size, Material → Next
+4. Configure Changeovers → Set times → Run Optimization
+5. Results → Export (downloads via browser)
+
+**What Works:**
+
+| Feature | Browser Mode | Electron Mode |
+|---------|--------------|---------------|
+| Sample data | Yes | Yes |
+| File import | Yes | Yes |
+| Optimization | Yes | Yes |
+| Export (xlsx/csv) | Yes (browser download) | Yes (save dialog) |
+| Clipboard export | Yes | Yes |
+| Templates | No (shimmed) | Yes |
+| SMED module | No (shimmed) | Yes |
+| Analytics | No (shimmed) | Yes |
+| Settings persistence | No | Yes |
+
+**Expected Console Messages:**
+```
+[Electron Shim] IPC not available for: ...
+[Electron Shim] Mocking dialog save ...
+```
+These are normal in browser mode.
+
+### Full Electron Testing
+
+For complete feature testing with database persistence:
+```bash
+npm run electron:dev
+```
+
+### When to Use Each Mode
+
+| Use Case | Mode |
+|----------|------|
+| UI development | `npm run dev` |
+| Quick optimization flow testing | `npm run dev` |
+| Template testing | `npm run electron:dev` |
+| SMED module testing | `npm run electron:dev` |
+| Analytics testing | `npm run electron:dev` |
+| E2E test development | `npm run electron:dev` |
+| Production debugging | `npm run electron:dev` |
 
 ---
 

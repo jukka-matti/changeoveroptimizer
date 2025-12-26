@@ -9,6 +9,7 @@ const WelcomeScreen = lazy(() => import("@/screens/WelcomeScreen").then(m => ({ 
 const DataPreviewScreen = lazy(() => import("@/screens/DataPreviewScreen").then(m => ({ default: m.DataPreviewScreen })));
 const ColumnMappingScreen = lazy(() => import("@/screens/ColumnMappingScreen").then(m => ({ default: m.ColumnMappingScreen })));
 const ChangeoverConfigScreen = lazy(() => import("@/screens/ChangeoverConfigScreen").then(m => ({ default: m.ChangeoverConfigScreen })));
+const OptimizingScreen = lazy(() => import("@/screens/OptimizingScreen").then(m => ({ default: m.OptimizingScreen })));
 const ResultsScreen = lazy(() => import("@/screens/ResultsScreen").then(m => ({ default: m.ResultsScreen })));
 const ExportScreen = lazy(() => import("@/screens/ExportScreen").then(m => ({ default: m.ExportScreen })));
 const SettingsScreen = lazy(() => import("@/screens/SettingsScreen").then(m => ({ default: m.SettingsScreen })));
@@ -38,6 +39,8 @@ function App() {
         return <ColumnMappingScreen />;
       case "changeover-config":
         return <ChangeoverConfigScreen />;
+      case "optimizing":
+        return <OptimizingScreen />;
       case "results":
         return <ResultsScreen />;
       case "export":
@@ -52,8 +55,10 @@ function App() {
         return <AnalyticsDashboardScreen />;
       case "changeover-matrix":
         return <ChangeoverMatrixScreen />;
-      default:
+      default: {
+        console.warn(`[App] Unhandled screen: ${currentScreen}`);
         return <WelcomeScreen />;
+      }
     }
   };
 

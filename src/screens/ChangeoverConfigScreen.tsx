@@ -5,6 +5,7 @@ import { useAppStore } from "@/stores/app-store";
 import { useDataStore, useIsConfigValid } from "@/stores/data-store";
 import { ChangeoverConfigList } from "@/components/features/ChangeoverConfigList";
 import { useOptimization } from "@/hooks/useOptimization";
+import { FirstTimeHint } from "@/components/ui/first-time-hint";
 import { ArrowLeft, Play, Grid3X3 } from "lucide-react";
 
 export function ChangeoverConfigScreen() {
@@ -37,6 +38,11 @@ export function ChangeoverConfigScreen() {
           </Button>
         </div>
       </div>
+
+      <FirstTimeHint
+        hintKey="changeover-config"
+        message="Enter how long each type of change takes in minutes. Higher values for attributes that are harder to change will help the optimizer prioritize those sequences."
+      />
 
       <ChangeoverConfigList />
 

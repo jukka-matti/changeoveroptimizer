@@ -11,3 +11,6 @@ export * from './analytics';
 
 // Changeover matrix schemas
 export * from './changeovers';
+
+// Saved configurations for auto-detection
+export * from './configurations';

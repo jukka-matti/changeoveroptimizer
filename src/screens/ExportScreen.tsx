@@ -1,11 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useDataStore } from '@/stores/data-store';
+import { useConfigStore } from '@/stores/config-store';
+import { configurationsIpc } from '@/lib/electron-ipc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { generateExport, ExportFormat } from '@/services/exporter';
 import { saveFileDialog } from '@/lib/electron';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +30,7 @@ import { cn } from '@/lib/utils';
 export function ExportScreen() {
   const { navigateTo } = useAppStore();
   const { result, sourceFile } = useDataStore();
+  const { activeConfigId } = useConfigStore();
   const { checkFeature } = useLicenseStore();
   const { toast } = useToast();
 
@@ -26,6 +40,19 @@ export function ExportScreen() {
   const [isExporting, setIsExporting] = useState(false);
 
   const canExportPDF = checkFeature('pdf-export');
+
+  // Load saved export format preference
+  useEffect(() => {
+    if (activeConfigId) {
+      configurationsIpc.getById(activeConfigId).then(config => {
+        if (config?.lastExportFormat) {
+          setFormat(config.lastExportFormat as ExportFormat);
+        }
+      }).catch(err => {
+        console.warn('Failed to load export preference:', err);
+      });
+    }
+  }, [activeConfigId]);
 
   if (!result || !sourceFile) {
     return (
@@ -70,6 +97,13 @@ export function ExportScreen() {
             description: `File saved to: ${path.split(/[/\\]/).pop()}`,
           });
         }
+      }
+
+      // Save export format preference for this configuration
+      if (activeConfigId) {
+        configurationsIpc.updateExportPreference(activeConfigId, format).catch(err => {
+          console.warn('Failed to save export preference:', err);
+        });
       }
     } catch (err) {
       console.error('Export failed:', err);
@@ -193,9 +227,28 @@ export function ExportScreen() {
               </>
             )}
           </Button>
-          <Button variant="ghost" className="text-muted-foreground" onClick={() => navigateTo('welcome')}>
-            Start New Optimization
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="text-muted-foreground">
+                Start New Optimization
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Start new optimization?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will clear your current results and return to the home screen.
+                  Make sure you've exported or saved your schedule first.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => navigateTo('welcome')}>
+                  Yes, start new
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

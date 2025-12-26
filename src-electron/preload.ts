@@ -62,6 +62,18 @@ contextBridge.exposeInMainWorld('electron', {
       'changeover:batch_lookup',
       'changeover:prefetch_matrix',
       'changeover:import_smed',
+      // Saved Configurations channels
+      'configurations:find_by_fingerprint',
+      'configurations:find_by_columns',
+      'configurations:generate_fingerprint',
+      'configurations:get_all',
+      'configurations:get_by_id',
+      'configurations:create',
+      'configurations:update',
+      'configurations:delete',
+      'configurations:record_usage',
+      'configurations:update_export_preference',
+      'configurations:save_or_update',
     ];
 
     if (validChannels.includes(channel)) {

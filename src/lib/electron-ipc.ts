@@ -42,6 +42,10 @@ import type {
   ChangeoverLookup,
   SmedImportArgs,
 } from '@/types/changeover';
+import type {
+  SavedConfiguration,
+  SavedConfigurationInput,
+} from '@/types/configurations';
 
 // ============================================================================
 // Channel Type Mapping
@@ -136,6 +140,22 @@ interface IpcChannelMap {
     result: Record<string, number>;
   };
   'changeovers:import_smed': { args: SmedImportArgs; result: ChangeoverMatrixEntry };
+
+  // Saved Configurations
+  'configurations:find_by_fingerprint': { args: { fingerprint: string }; result: SavedConfiguration | undefined };
+  'configurations:find_by_columns': { args: { columns: string[] }; result: SavedConfiguration | undefined };
+  'configurations:generate_fingerprint': { args: { columns: string[] }; result: string };
+  'configurations:get_all': { args: void; result: SavedConfiguration[] };
+  'configurations:get_by_id': { args: { id: string }; result: SavedConfiguration | undefined };
+  'configurations:create': { args: { data: SavedConfigurationInput }; result: SavedConfiguration };
+  'configurations:update': { args: { id: string; data: Partial<SavedConfigurationInput> }; result: void };
+  'configurations:delete': { args: { id: string }; result: void };
+  'configurations:record_usage': { args: { id: string }; result: void };
+  'configurations:update_export_preference': { args: { id: string; format: string }; result: void };
+  'configurations:save_or_update': {
+    args: { columns: string[]; orderIdColumn: string; attributesJson: string; name?: string };
+    result: SavedConfiguration;
+  };
 }
 
 type IpcChannel = keyof IpcChannelMap;
@@ -178,6 +198,18 @@ export async function ipcInvoke<C extends IpcChannel>(
     if (channel === 'smed:publish_standard') {
       console.log('[Electron Shim] Mocking publish_standard', args);
       return undefined as any;
+    }
+
+    // Configurations shims for browser testing
+    if (channel === 'configurations:find_by_columns' || channel === 'configurations:find_by_fingerprint') {
+      return undefined as any;
+    }
+    if (channel === 'configurations:get_all') {
+      return [] as any;
+    }
+    if (channel === 'configurations:generate_fingerprint') {
+      const argsTyped = args[0] as { columns: string[] };
+      return [...argsTyped.columns].sort().join('|') as any;
     }
 
     return undefined as IpcChannelMap[C]['result'];
@@ -312,4 +344,33 @@ export const fileIpc = {
     defaultPath?: string,
     filters?: { name: string; extensions: string[] }[]
   ) => ipcInvoke('save_dialog', { defaultPath, filters }),
+};
+
+/**
+ * Saved Configurations-related IPC calls
+ */
+export const configurationsIpc = {
+  findByFingerprint: (fingerprint: string) =>
+    ipcInvoke('configurations:find_by_fingerprint', { fingerprint }),
+  findByColumns: (columns: string[]) =>
+    ipcInvoke('configurations:find_by_columns', { columns }),
+  generateFingerprint: (columns: string[]) =>
+    ipcInvoke('configurations:generate_fingerprint', { columns }),
+  getAll: () => ipcInvoke('configurations:get_all'),
+  getById: (id: string) => ipcInvoke('configurations:get_by_id', { id }),
+  create: (data: SavedConfigurationInput) =>
+    ipcInvoke('configurations:create', { data }),
+  update: (id: string, data: Partial<SavedConfigurationInput>) =>
+    ipcInvoke('configurations:update', { id, data }),
+  delete: (id: string) => ipcInvoke('configurations:delete', { id }),
+  recordUsage: (id: string) =>
+    ipcInvoke('configurations:record_usage', { id }),
+  updateExportPreference: (id: string, format: string) =>
+    ipcInvoke('configurations:update_export_preference', { id, format }),
+  saveOrUpdate: (
+    columns: string[],
+    orderIdColumn: string,
+    attributesJson: string,
+    name?: string
+  ) => ipcInvoke('configurations:save_or_update', { columns, orderIdColumn, attributesJson, name }),
 };

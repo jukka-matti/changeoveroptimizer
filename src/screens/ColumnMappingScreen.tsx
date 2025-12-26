@@ -5,6 +5,7 @@ import { useLicenseStore } from "@/stores/license-store";
 import { ColumnMapper } from "@/components/features/ColumnMapper";
 import { UpgradePrompt } from "@/components/features/UpgradePrompt";
 import { TemplateManager } from "@/components/features/TemplateManager";
+import { FirstTimeHint } from "@/components/ui/first-time-hint";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export function ColumnMappingScreen() {
@@ -42,11 +43,16 @@ export function ColumnMappingScreen() {
       </div>
 
       {isOrderLimitHit && (
-        <UpgradePrompt 
-          title="Order Limit Reached" 
+        <UpgradePrompt
+          title="Order Limit Reached"
           description={`Your production schedule has ${orderCount} orders, but the free tier only supports 50.`}
         />
       )}
+
+      <FirstTimeHint
+        hintKey="column-mapping"
+        message="Select the column that identifies each order, then choose which attributes affect changeover time (e.g., Color, Material, Size)."
+      />
 
       <ColumnMapper />
 

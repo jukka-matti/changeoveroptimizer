@@ -422,10 +422,12 @@ Database auto-initializes on first app run.
 - `MetricCard` - Stats display with variants (default, success, warning)
 - `UnderlineTabs` - Tab navigation with underline style
 - `FormDialog` - Modal dialog with form handling via `useFormDialog()`
+- `FirstTimeHint` - Dismissible first-time user hints with localStorage persistence
 
 ### Hooks (`src/hooks/`)
 - `useKeyboardEvent` - Unified keyboard shortcut handling
 - `useFileImport` - File import with drag-and-drop support
+- `useFirstTimeHint` - First-time hint state management (localStorage-backed)
 
 ### Utilities (`src/lib/`)
 - `electron-ipc.ts` - Type-safe IPC wrappers (smedIpc, analyticsIpc, filesIpc)

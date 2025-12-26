@@ -82,7 +82,21 @@ export async function openFileDialog(): Promise<{ path: string; data: Uint8Array
 }
 
 /**
+ * Get MIME type from filename extension.
+ */
+function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'xlsx': return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'csv': return 'text/csv';
+    case 'pdf': return 'application/pdf';
+    default: return 'application/octet-stream';
+  }
+}
+
+/**
  * Save data to a file via a save dialog.
+ * Falls back to browser download when not in Electron.
  */
 export async function saveFileDialog(
   filename: string,
@@ -107,6 +121,20 @@ export async function saveFileDialog(
   });
 
   if (!path) {
+    // Browser fallback: use Blob + anchor download
+    if (!isElectron) {
+      const mimeType = getMimeType(filename);
+      const blob = new Blob([new Uint8Array(data)], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return filename; // Return filename to indicate success
+    }
     return null;
   }
 

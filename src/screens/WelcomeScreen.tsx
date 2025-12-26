@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ScreenLayout } from "@/components/layout/ScreenLayout";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FirstTimeHint } from "@/components/ui/first-time-hint";
 
 /**
  * Welcome screen - focused on file import.
@@ -29,6 +30,11 @@ export function WelcomeScreen() {
           {t('welcome.subtitle')}
         </p>
       </div>
+
+      <FirstTimeHint
+        hintKey="welcome"
+        message="Import your production schedule (Excel or CSV) to get started. The optimizer will analyze your orders and suggest the best sequence."
+      />
 
       <div className="grid grid-cols-1 normal:grid-cols-2 gap-fluid-8 w-full max-w-4xl">
         <div className="space-y-6">

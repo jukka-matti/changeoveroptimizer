@@ -778,6 +778,53 @@ export function ExportOptions({
 }
 ```
 
+### FirstTimeHint
+
+Dismissible hint banner for first-time users on key screens.
+
+```tsx
+// components/ui/first-time-hint.tsx
+
+interface FirstTimeHintProps {
+  hintKey: string;     // Unique key for localStorage persistence
+  message: string;     // Hint message to display
+}
+
+export function FirstTimeHint({ hintKey, message }: FirstTimeHintProps) {
+  const { showHint, dismissHint } = useFirstTimeHint(hintKey);
+
+  if (!showHint) return null;
+
+  return (
+    <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm">
+      <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+      <p className="flex-1 text-muted-foreground">{message}</p>
+      <Button variant="ghost" size="sm" onClick={dismissHint}>
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
+```
+
+**Usage:**
+```tsx
+<FirstTimeHint
+  hintKey="welcome"
+  message="Import your production schedule (Excel or CSV) to get started."
+/>
+```
+
+**Screens with Hints:**
+- WelcomeScreen: "Import your production schedule..."
+- ColumnMappingScreen: "Select the column that identifies each order..."
+- ChangeoverConfigScreen: "Enter how long each type of change takes..."
+
+**Behavior:**
+- Shows on first visit (localStorage: `hint_dismissed_{key}`)
+- Dismiss button persists dismissal permanently
+- Lightbulb icon, subtle primary-tinted background
+
 ---
 
 ## 3. Modal Components
@@ -923,10 +970,10 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 
 | Screen | Components Used |
 |--------|-----------------|
-| **Welcome** | FileDropzone, RecentFilesList |
+| **Welcome** | FileDropzone, RecentFilesList, FirstTimeHint |
 | **Data Preview** | DataTable, Alert (for warnings) |
-| **Column Mapping** | ColumnSelector, Badge (selected attrs) |
-| **Changeover Config** | AttributeList |
+| **Column Mapping** | ColumnSelector, Badge (selected attrs), FirstTimeHint |
+| **Changeover Config** | AttributeList, FirstTimeHint |
 | **Optimizing** | Progress, Loader |
 | **Results** | ResultsCard (×3), SequenceTable |
 | **Export** | ExportOptions, Button |
@@ -937,7 +984,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 |------|------------|
 | **shadcn/ui** | Button, Card, Dialog, Input, Select, Table, Progress, Toast, Badge, Tooltip, Checkbox, RadioGroup, Label |
 | **Layout** | ScreenContainer, Sidebar, Header, Footer, ProgressStepper, Logo |
-| **Features** | FileDropzone, DataTable, ColumnSelector, AttributeList, ResultsCard, SequenceTable, ExportOptions |
+| **Features** | FileDropzone, DataTable, ColumnSelector, AttributeList, ResultsCard, SequenceTable, ExportOptions, FirstTimeHint |
 | **Modals** | SettingsModal, UpgradeModal, AboutModal |
 
 ---
@@ -988,6 +1035,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 |---------|------|---------|
 | 0.1 | 2024-12-20 | Initial component specifications |
 | 0.2 | 2024-12-26 | Added sidebar navigation layout, Logo, Sidebar components |
+| 0.3 | 2024-12-27 | Added FirstTimeHint component for onboarding hints |
 
 ---
 

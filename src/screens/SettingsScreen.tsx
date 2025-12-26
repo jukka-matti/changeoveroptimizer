@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LicenseSection } from '@/components/features/LicenseSection';
+import { SavedConfigurationsList } from '@/components/features/SavedConfigurationsList';
 import {
   Moon,
   Sun,
@@ -93,6 +94,9 @@ export function SettingsScreen() {
           isValidating={isValidating}
           setValidating={setValidating}
         />
+
+        {/* Saved Configurations */}
+        <SavedConfigurationsList />
 
         {/* Changeover Configuration */}
         <Card>

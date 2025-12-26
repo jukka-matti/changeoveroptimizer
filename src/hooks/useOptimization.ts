@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
 import { useAppStore } from '@/stores/app-store';
 import { useDataStore, useOrders } from '@/stores/data-store';
+import { useConfigStore } from '@/stores/config-store';
 import { optimize, OptimizeOptions } from '@/services/optimizer';
 import { telemetry } from '@/services/telemetry';
-import { changeoverIpc } from '@/lib/electron-ipc';
+import { changeoverIpc, configurationsIpc } from '@/lib/electron-ipc';
 import type { Order } from '@/types';
+import { serializeAttributes } from '@/types/configurations';
 
 /**
  * Prefetch changeover matrix data for optimization.
@@ -37,7 +39,8 @@ async function prefetchMatrixData(
 
 export function useOptimization() {
   const { navigateTo, setError } = useAppStore();
-  const { config, setResult, setOptimizing } = useDataStore();
+  const { config, sourceFile, setResult, setOptimizing } = useDataStore();
+  const { setActiveConfig } = useConfigStore();
   const orders = useOrders();
 
   const runOptimization = useCallback(async () => {
@@ -81,6 +84,21 @@ export function useOptimization() {
         useMatrixLookup: config.useMatrixLookup,
       });
 
+      // Auto-save configuration for future file format recognition
+      if (sourceFile?.columns && config.orderIdColumn) {
+        configurationsIpc.saveOrUpdate(
+          sourceFile.columns,
+          config.orderIdColumn,
+          serializeAttributes(config.attributes)
+        ).then(savedConfig => {
+          if (savedConfig) {
+            setActiveConfig(savedConfig.id);
+          }
+        }).catch(err => {
+          console.warn('Failed to auto-save configuration:', err);
+        });
+      }
+
       setResult(result);
       navigateTo('results');
     } catch (err) {
@@ -94,7 +112,7 @@ export function useOptimization() {
     } finally {
       setOptimizing(false);
     }
-  }, [orders, config.attributes, config.useMatrixLookup, navigateTo, setResult, setOptimizing, setError]);
+  }, [orders, config.attributes, config.useMatrixLookup, config.orderIdColumn, sourceFile?.columns, navigateTo, setResult, setOptimizing, setError, setActiveConfig]);
 
   return { runOptimization };
 }
