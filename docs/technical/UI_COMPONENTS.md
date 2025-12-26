@@ -37,142 +37,232 @@ npx shadcn@latest add button card dialog input select table progress toast badge
 
 ## 1. Layout Components
 
-### AppShell
+### Application Layout
 
-The main layout wrapper for all screens.
+The app uses a **sidebar navigation pattern** with a flexible content area:
+
+```
+┌──────────┬──────────────────────────────────────────────────────────────────┐
+│   [CO]   │                                                                  │
+│ Optimizer│  Header: App Title                                       [Info]  │
+│          ├──────────────────────────────────────────────────────────────────┤
+│  ○ Home  │  Progress Stepper (only during workflow)                         │
+│  ● Optim ├──────────────────────────────────────────────────────────────────┤
+│  ○ SMED  │                                                                  │
+│  ○ Stats │  Main Content Area                                               │
+│          │                                                                  │
+├──────────┤                                                                  │
+│  ⚙ Set   │  Footer                                                          │
+└──────────┴──────────────────────────────────────────────────────────────────┘
+```
+
+### ScreenContainer
+
+Main layout wrapper that combines sidebar, header, and content.
 
 ```tsx
-// components/layout/AppShell.tsx
+// components/layout/ScreenContainer.tsx
 
-interface AppShellProps {
-  children: React.ReactNode;
-}
+export function ScreenContainer({ children }: { children: React.ReactNode }) {
+  const { currentScreen, navigateTo } = useAppStore();
+  const showStepper = isWorkflowScreen(currentScreen);
 
-export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <Header />
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto px-6 py-8 max-w-4xl">
-          {children}
-        </div>
-      </main>
-      <Footer />
+    <div className="flex min-h-screen min-w-[800px]">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header />
+        {showStepper && <ProgressStepper currentStep={currentScreen} />}
+        <main className="flex-1 py-8">
+          <div className="max-w-container-normal mx-auto px-6">
+            {children}
+          </div>
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
 ```
 
 **Specs:**
-- Fixed header (56px)
-- Scrollable main content
-- Fixed footer (64px) — hidden on Welcome screen
-- Max content width: 896px (max-w-4xl)
-- Horizontal padding: 24px
+- Sidebar: Fixed 200px width
+- Content area: Flexible width
+- Min app width: 800px
+- Progress stepper: Shown only for workflow screens
+
+### Sidebar
+
+Enterprise-grade navigation sidebar with module links.
+
+```tsx
+// components/layout/Sidebar.tsx
+
+const mainNavItems = [
+  { id: "home", label: "Home", icon: Home, screen: "welcome" },
+  { id: "optimizer", label: "Optimizer", icon: LineChart, screen: "data-preview" },
+  { id: "smed", label: "SMED", icon: ClipboardList, screen: "smed" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, screen: "analytics" },
+];
+
+export function Sidebar() {
+  const { currentScreen, navigateTo } = useAppStore();
+
+  return (
+    <aside className="w-[200px] border-r bg-card flex flex-col h-screen sticky top-0">
+      {/* Logo and Brand */}
+      <div className="p-4 border-b">
+        <Logo size="md" onClick={() => navigateTo("welcome")} />
+        <span className="font-semibold">Optimizer</span>
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="flex-1 p-3 space-y-1">
+        {mainNavItems.map((item) => (
+          <NavItemButton key={item.id} item={item} />
+        ))}
+      </nav>
+
+      {/* Settings (bottom) */}
+      <div className="p-3 border-t">
+        <NavItemButton item={{ id: "settings", label: "Settings", icon: Settings }} />
+      </div>
+    </aside>
+  );
+}
+```
+
+**Specs:**
+- Fixed 200px width
+- Full viewport height, sticky positioning
+- Logo at top (clickable to go home)
+- Main nav items with icons
+- Settings separated at bottom
+- Active state: `bg-primary/10 text-primary border-l-2 border-primary`
+
+### Logo
+
+Brand mark component with size variants.
+
+```tsx
+// components/ui/logo.tsx
+
+interface LogoProps {
+  size?: 'sm' | 'md' | 'lg';  // 24px, 32px, 48px
+  onClick?: () => void;
+}
+
+export function Logo({ size = "md", onClick }: LogoProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-xl bg-primary flex items-center justify-center
+                 text-primary-foreground font-bold shadow-md
+                 hover:scale-105 transition-transform"
+    >
+      CO
+    </button>
+  );
+}
+```
+
+**Specs:**
+- Sizes: sm (24px), md (32px), lg (48px)
+- Primary blue background, white text
+- Rounded corners, subtle shadow
+- Click to navigate home
 
 ### Header
+
+Simplified header with app title and info button.
 
 ```tsx
 // components/layout/Header.tsx
 
 export function Header() {
-  const currentScreen = useAppStore((s) => s.currentScreen);
-  
   return (
-    <header className="h-14 border-b bg-background flex items-center px-6">
-      <div className="flex items-center gap-3">
-        <Logo size={24} />
-        <span className="font-semibold">ChangeoverOptimizer</span>
+    <header className="border-b bg-background/95 backdrop-blur h-14">
+      <div className="flex items-center justify-between px-6">
+        <span className="font-semibold text-lg text-muted-foreground">
+          ChangeoverOptimizer
+        </span>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Info className="h-5 w-5" />
+            </Button>
+          </DialogTrigger>
+          {/* About dialog content */}
+        </Dialog>
       </div>
-      
-      {currentScreen !== 'welcome' && (
-        <StepIndicator className="mx-auto" />
-      )}
-      
-      <Button variant="ghost" size="icon">
-        <Settings className="h-5 w-5" />
-      </Button>
     </header>
   );
 }
 ```
 
-### StepIndicator
+**Specs:**
+- Height: 56px (h-14)
+- App title on left (muted text)
+- Info button on right (opens about dialog)
+- Navigation handled by sidebar (not in header)
 
-Visual progress through the workflow.
+### ProgressStepper
+
+Visual progress through the 5-step optimization workflow.
 
 ```tsx
-// components/layout/StepIndicator.tsx
+// components/ui/progress-stepper.tsx
 
-const STEPS = ['Import', 'Configure', 'Times', 'Results', 'Export'];
+const WORKFLOW_STEPS = [
+  { id: "data-preview", label: "Preview Data" },
+  { id: "column-mapping", label: "Map Columns" },
+  { id: "changeover-config", label: "Configure" },
+  { id: "results", label: "Results" },
+  { id: "export", label: "Export" },
+];
 
-export function StepIndicator() {
-  const currentScreen = useAppStore((s) => s.currentScreen);
-  const stepIndex = getStepIndex(currentScreen);
-  
+export function ProgressStepper({ currentStep, onStepClick }) {
   return (
-    <div className="flex items-center gap-2">
-      {STEPS.map((step, i) => (
-        <Fragment key={step}>
-          {i > 0 && <div className={cn(
-            "w-8 h-0.5",
-            i <= stepIndex ? "bg-primary" : "bg-muted"
-          )} />}
-          
+    <div className="border-b bg-muted/30 py-4">
+      {WORKFLOW_STEPS.map((step, i) => (
+        <button
+          key={step.id}
+          onClick={() => isCompleted && onStepClick(step.id)}
+          disabled={!isCompleted}
+        >
           <div className={cn(
-            "flex items-center gap-1.5",
-            i === stepIndex && "text-primary font-medium",
-            i < stepIndex && "text-primary",
-            i > stepIndex && "text-muted-foreground"
+            "w-8 h-8 rounded-full",
+            isCompleted && "bg-primary text-primary-foreground",
+            isCurrent && "ring-2 ring-primary/30",
+            isFuture && "bg-muted text-muted-foreground"
           )}>
-            <div className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs",
-              i <= stepIndex ? "bg-primary text-white" : "bg-muted"
-            )}>
-              {i < stepIndex ? <Check className="h-3 w-3" /> : i + 1}
-            </div>
-            <span className="text-sm hidden md:inline">{step}</span>
+            {isCompleted ? <Check /> : index + 1}
           </div>
-        </Fragment>
+          <span>{step.label}</span>
+        </button>
       ))}
     </div>
   );
 }
 ```
 
+**Specs:**
+- Shows only for workflow screens
+- Clickable completed steps (allows going back)
+- Current step has ring highlight
+- Connecting lines between steps
+
 ### Footer
 
-Navigation buttons and tier badge.
+Copyright and links at bottom of content area.
 
 ```tsx
 // components/layout/Footer.tsx
 
 export function Footer() {
-  const { currentScreen, navigateTo } = useAppStore();
-  const tier = useLicenseStore((s) => s.tier);
-  const canProceed = useCanProceed();
-  
-  const { prev, next, nextLabel } = getNavigation(currentScreen);
-  
-  if (currentScreen === 'welcome') return null;
-  
   return (
-    <footer className="h-16 border-t bg-background flex items-center justify-between px-6">
-      {prev ? (
-        <Button variant="ghost" onClick={() => navigateTo(prev)}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </Button>
-      ) : <div />}
-      
-      <Badge variant={tier === 'pro' ? 'default' : 'secondary'}>
-        {tier === 'pro' ? 'Pro' : 'Free'}
-      </Badge>
-      
-      {next && (
-        <Button onClick={() => navigateTo(next)} disabled={!canProceed}>
-          {nextLabel} <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      )}
+    <footer className="border-t py-4 text-center text-sm text-muted-foreground">
+      © 2024 RDMAIC Oy | Privacy | Support | v1.0.0
     </footer>
   );
 }
@@ -846,7 +936,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 | Type | Components |
 |------|------------|
 | **shadcn/ui** | Button, Card, Dialog, Input, Select, Table, Progress, Toast, Badge, Tooltip, Checkbox, RadioGroup, Label |
-| **Layout** | AppShell, Header, Footer, StepIndicator, Logo |
+| **Layout** | ScreenContainer, Sidebar, Header, Footer, ProgressStepper, Logo |
 | **Features** | FileDropzone, DataTable, ColumnSelector, AttributeList, ResultsCard, SequenceTable, ExportOptions |
 | **Modals** | SettingsModal, UpgradeModal, AboutModal |
 
@@ -897,7 +987,7 @@ export function SettingsModal({ open, onClose }: { open: boolean; onClose: () =>
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2024-12-20 | Initial component specifications |
-| | | |
+| 0.2 | 2024-12-26 | Added sidebar navigation layout, Logo, Sidebar components |
 
 ---
 

@@ -1,59 +1,48 @@
-import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import { Logo } from "@/components/ui/logo";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog";
-import { Settings, Home, Info, Github, Globe, ClipboardList } from "lucide-react";
+import { Info, Github, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Simplified header component.
+ *
+ * With sidebar handling main navigation, the header is now minimal:
+ * - Page title or context info on the left
+ * - Info/About button on the right
+ *
+ * The progress stepper is rendered separately in ScreenContainer.
+ */
 export function Header() {
   const { t } = useTranslation();
-  const { currentScreen, navigateTo } = useAppStore();
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigateTo("welcome")}
-            disabled={currentScreen === "welcome"}
-            title="Home"
-          >
-            <Home className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigateTo("smed")}
-            className={currentScreen === "smed" ? "bg-accent" : ""}
-            title="SMED Studies"
-          >
-            <ClipboardList className="h-4 w-4 mr-2" />
-            SMED
-          </Button>
-          <span className="font-bold text-fluid-xl tracking-tight">ChangeoverOptimizer</span>
+      <div className="flex h-14 items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-lg tracking-tight text-muted-foreground">
+            ChangeoverOptimizer
+          </span>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" title="About">
                 <Info className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <div className="flex justify-center mb-4">
-                  <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-3xl shadow-lg">
-                    CO
-                  </div>
+                  <Logo size="lg" />
                 </div>
                 <DialogTitle className="text-center text-2xl">{t('welcome.title')}</DialogTitle>
                 <DialogDescription className="text-center">
@@ -84,14 +73,6 @@ export function Header() {
               </div>
             </DialogContent>
           </Dialog>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigateTo("settings")}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </header>

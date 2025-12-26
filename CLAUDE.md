@@ -38,7 +38,8 @@ changeoveroptimizer/
 ├── src/                      # React frontend
 │   ├── App.tsx
 │   ├── components/           # UI components
-│   │   ├── ui/               # shadcn/ui + custom (DurationInput, MetricCard, etc.)
+│   │   ├── ui/               # shadcn/ui + custom (Logo, DurationInput, MetricCard, etc.)
+│   │   ├── layout/           # Layout (Sidebar, Header, Footer, ScreenContainer)
 │   │   ├── smed/             # SMED-specific (NewStudyDialog, etc.)
 │   │   └── features/         # Feature-specific (LicenseSection)
 │   ├── screens/              # Page-level components
@@ -197,13 +198,30 @@ If all change: Work = 45 min, Downtime = max(15,10) + 20 = 35 min
 
 Complexity: O(n log n) average, handles 10,000+ orders.
 
-## Screen Flow
+## Application Layout
+
+The app uses **sidebar navigation** (enterprise-grade, like SAP/Siemens industrial software):
 
 ```
-Welcome → Data Preview → Column Mapping → Changeover Config → Optimizing → Results → Export
-                                                                              ↓
-                                                                          Settings
+┌──────────┬─────────────────────────────────────────────────────────────────┐
+│   [CO]   │ Header: ChangeoverOptimizer                             [Info]  │
+│ Optimizer├─────────────────────────────────────────────────────────────────┤
+│          │ Progress Stepper (only during workflow)                         │
+│  ○ Home  ├─────────────────────────────────────────────────────────────────┤
+│  ● Optim │                                                                 │
+│  ○ SMED  │  Main Content: Welcome | Workflow (5 steps) | Modules          │
+│  ○ Stats │                                                                 │
+├──────────┤                                                                 │
+│  ⚙ Set   │  Footer                                                         │
+└──────────┴─────────────────────────────────────────────────────────────────┘
 ```
+
+**Sidebar Navigation:**
+- Home → Welcome screen
+- Optimizer → 5-step workflow (Data Preview → Column Mapping → Config → Results → Export)
+- SMED → SMED studies module
+- Analytics → Analytics dashboard
+- Settings → App settings + Changeover Times
 
 ## Coding Standards
 
@@ -272,6 +290,47 @@ npm run build          # Build production frontend
 npm run electron:build # Create installers (.exe, .dmg, .deb)
 npm run lint           # ESLint
 npm run typecheck      # TypeScript check
+```
+
+## Browser Testing (npm run dev)
+
+For rapid UI development and testing, use browser mode. This runs the React frontend without Electron, using shimmed APIs.
+
+### Quick Test Flow
+
+1. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+
+2. Open http://localhost:5173 in your browser
+
+3. On the Welcome screen, click **"Load Example Schedule"** to use sample data
+
+4. Follow the optimization flow:
+   - Data Preview → Next
+   - Column Mapping → Select attributes (Color, Size, Material) → Next
+   - Configure Changeovers → Set times (e.g., Color: 15 min, Size: 10 min) → Run Optimization
+   - Results → View savings → Export
+
+5. Export downloads via browser (file appears in Downloads folder)
+
+### What's Shimmed in Browser Mode
+
+The following features require Electron and are mocked in browser mode:
+- **Templates**: Save/load returns empty, no persistence
+- **SMED Module**: All database operations return empty arrays
+- **Analytics**: No data stored or retrieved
+- **Changeover Matrix**: Lookups return empty
+- **Settings persistence**: Not saved between sessions
+
+Console shows `[Electron Shim]` messages for shimmed API calls - these are expected.
+
+### Full Electron Testing
+
+For complete feature testing including database persistence:
+```bash
+npm run electron:dev
 ```
 
 ## Business Rules

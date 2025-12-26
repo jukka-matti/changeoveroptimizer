@@ -8,11 +8,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LicenseSection } from '@/components/features/LicenseSection';
 import {
-  ArrowLeft,
   Moon,
   Sun,
   Monitor,
   Languages,
+  Clock,
+  ChevronRight,
 } from 'lucide-react';
 
 export function SettingsScreen() {
@@ -21,16 +22,10 @@ export function SettingsScreen() {
   const { theme, setTheme, language, setLanguage } = useSettingsStore();
 
   return (
-    <div className="space-y-8 max-w-container-normal mx-auto px-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-fluid-3xl font-bold tracking-tight">Settings</h2>
-          <p className="text-fluid-base text-muted-foreground">Manage your app preferences and subscription.</p>
-        </div>
-        <Button variant="outline" onClick={() => navigateTo('welcome')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+    <div className="space-y-8">
+      <div className="space-y-1">
+        <h2 className="text-fluid-3xl font-bold tracking-tight">Settings</h2>
+        <p className="text-fluid-base text-muted-foreground">Manage your app preferences and subscription.</p>
       </div>
 
       <div className="grid gap-8">
@@ -98,6 +93,29 @@ export function SettingsScreen() {
           isValidating={isValidating}
           setValidating={setValidating}
         />
+
+        {/* Changeover Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Changeover Times
+            </CardTitle>
+            <CardDescription>
+              Define specific changeover times between product values for more accurate optimization.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              className="w-full justify-between"
+              onClick={() => navigateTo('changeover-matrix')}
+            >
+              <span>Edit Changeover Times</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
