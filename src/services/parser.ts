@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ParsedFile } from '@/types';
 
 export interface ParseOptions {
@@ -56,14 +56,26 @@ export async function parseFile(
   }
 
   try {
-    const workbook = XLSX.read(buffer, {
-      type: 'array',
-      cellDates: true,
-      cellNF: false,
-      cellText: false,
-    });
+    const workbook = new ExcelJS.Workbook();
 
-    const sheets = workbook.SheetNames;
+    // Load based on file type
+    if (ext === 'csv' || ext === 'tsv') {
+      // For CSV/TSV, parse manually since exceljs csv.read needs Node streams
+      const text = new TextDecoder().decode(buffer);
+      const delimiter = ext === 'tsv' ? '\t' : ',';
+      const csvRows = parseCSVText(text, delimiter);
+
+      if (csvRows.length > 0) {
+        const sheet = workbook.addWorksheet('Sheet1');
+        csvRows.forEach((row) => {
+          sheet.addRow(row);
+        });
+      }
+    } else {
+      await workbook.xlsx.load(buffer);
+    }
+
+    const sheets = workbook.worksheets.map(ws => ws.name);
 
     if (sheets.length === 0) {
       return {
@@ -72,33 +84,57 @@ export async function parseFile(
       };
     }
 
-    const activeSheet = options.sheet ?? sheets[0];
-    const sheet = workbook.Sheets[activeSheet];
+    const activeSheetName = options.sheet ?? sheets[0];
+    const worksheet = workbook.worksheets.find(ws => ws.name === activeSheetName);
 
-    if (!sheet) {
+    if (!worksheet) {
       return {
         ok: false,
-        error: { code: 'EMPTY_FILE', message: `Sheet "${activeSheet}" not found.` },
+        error: { code: 'EMPTY_FILE', message: `Sheet "${activeSheetName}" not found.` },
       };
     }
 
-    const rawRows = XLSX.utils.sheet_to_json(sheet, {
-      defval: '',
-      raw: false,
-    }) as Record<string, unknown>[];
+    // Extract data - first row is headers
+    const rows: Record<string, unknown>[] = [];
+    let columns: string[] = [];
+    let isFirstRow = true;
 
-    const rows = options.skipEmpty !== false
-      ? rawRows.filter(row => Object.values(row).some(v => v !== ''))
-      : rawRows;
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const values = row.values as (string | number | Date | null | undefined)[];
+      // ExcelJS row.values is 1-indexed (index 0 is undefined)
+      const cellValues = values.slice(1);
 
-    if (rows.length === 0) {
+      if (isFirstRow) {
+        // First row = headers
+        columns = cellValues.map((v, i) => {
+          if (v === null || v === undefined || v === '') {
+            return `Column ${i + 1}`;
+          }
+          return String(v).trim();
+        });
+        isFirstRow = false;
+      } else {
+        // Data rows
+        const rowData: Record<string, unknown> = {};
+        columns.forEach((col, i) => {
+          const value = cellValues[i];
+          rowData[col] = formatCellValue(value);
+        });
+        rows.push(rowData);
+      }
+    });
+
+    // Filter empty rows if needed
+    const filteredRows = options.skipEmpty !== false
+      ? rows.filter(row => Object.values(row).some(v => v !== ''))
+      : rows;
+
+    if (filteredRows.length === 0) {
       return {
         ok: false,
         error: { code: 'EMPTY_FILE', message: 'File contains no data rows.' },
       };
     }
-
-    const columns = Object.keys(rows[0]);
 
     if (columns.length === 0) {
       return {
@@ -108,8 +144,8 @@ export async function parseFile(
     }
 
     const limitedRows = options.maxRows
-      ? rows.slice(0, options.maxRows)
-      : rows;
+      ? filteredRows.slice(0, options.maxRows)
+      : filteredRows;
 
     return {
       ok: true,
@@ -117,10 +153,10 @@ export async function parseFile(
         name: filename,
         path: '', // Set by caller
         sheets,
-        activeSheet,
+        activeSheet: activeSheetName,
         rows: limitedRows,
         columns,
-        rowCount: rows.length,
+        rowCount: filteredRows.length,
       },
     };
   } catch (e) {
@@ -133,6 +169,76 @@ export async function parseFile(
       },
     };
   }
+}
+
+/**
+ * Parse CSV/TSV text into rows of string arrays.
+ * Handles quoted fields and escaped quotes.
+ */
+function parseCSVText(text: string, delimiter: string): string[][] {
+  const rows: string[][] = [];
+  const lines = text.split(/\r?\n/);
+
+  for (const line of lines) {
+    if (line.trim() === '') continue;
+
+    const row: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (inQuotes) {
+        if (char === '"') {
+          if (line[i + 1] === '"') {
+            // Escaped quote
+            current += '"';
+            i++;
+          } else {
+            // End of quoted field
+            inQuotes = false;
+          }
+        } else {
+          current += char;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === delimiter) {
+          row.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+    }
+    row.push(current.trim());
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+/**
+ * Format cell value to string for consistent output.
+ */
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+  if (typeof value === 'object' && 'text' in value) {
+    // Rich text
+    return String((value as { text: string }).text);
+  }
+  if (typeof value === 'object' && 'result' in value) {
+    // Formula result
+    return String((value as { result: unknown }).result ?? '');
+  }
+  return String(value);
 }
 
 /**
@@ -186,5 +292,3 @@ export function detectAttributeColumns(
     !exclude.includes(col.toLowerCase())
   );
 }
-
-

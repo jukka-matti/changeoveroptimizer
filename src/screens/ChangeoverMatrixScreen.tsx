@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/stores/app-store";
 import { ArrowLeft, Plus, Trash2, Save, RefreshCw, FileDown } from "lucide-react";
 import { SmedImportDialog } from "@/components/features/SmedImportDialog";
+import { changeoverIpc } from "@/lib/electron-ipc";
 import type {
   ChangeoverAttribute,
   ChangeoverMatrixEntry,
@@ -26,38 +27,24 @@ export function ChangeoverMatrixScreen() {
   const [newAttributeDefaultTime, setNewAttributeDefaultTime] = useState(10);
   const [showImportDialog, setShowImportDialog] = useState(false);
 
-  // Load attributes on mount
-  useEffect(() => {
-    loadAttributes();
-  }, []);
-
-  // Load matrix entries when attribute is selected
-  useEffect(() => {
-    if (selectedAttributeId) {
-      loadMatrixEntries(selectedAttributeId);
-    }
-  }, [selectedAttributeId]);
-
-  const loadAttributes = async () => {
+  const loadAttributes = useCallback(async () => {
     try {
       setIsLoading(true);
-      const result = await (window as any).electron.invoke("changeover:get_all_attributes");
+      const result = await changeoverIpc.getAllAttributes() as ChangeoverAttribute[];
       setAttributes(result);
-      if (result.length > 0 && !selectedAttributeId) {
-        setSelectedAttributeId(result[0].id);
+      if (result.length > 0) {
+        setSelectedAttributeId((prev) => prev ?? result[0].id);
       }
     } catch (err) {
       console.error("Failed to load attributes:", err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const loadMatrixEntries = async (attributeId: string) => {
+  const loadMatrixEntries = useCallback(async (attributeId: string) => {
     try {
-      const result = await (window as any).electron.invoke("changeover:get_matrix", {
-        attributeId,
-      });
+      const result = await changeoverIpc.getMatrix(attributeId) as ChangeoverMatrixEntry[];
       setMatrixEntries(result);
 
       // Extract unique values from matrix entries
@@ -70,7 +57,19 @@ export function ChangeoverMatrixScreen() {
     } catch (err) {
       console.error("Failed to load matrix entries:", err);
     }
-  };
+  }, []);
+
+  // Load attributes on mount
+  useEffect(() => {
+    loadAttributes();
+  }, [loadAttributes]);
+
+  // Load matrix entries when attribute is selected
+  useEffect(() => {
+    if (selectedAttributeId) {
+      loadMatrixEntries(selectedAttributeId);
+    }
+  }, [selectedAttributeId, loadMatrixEntries]);
 
   const handleCreateAttribute = async () => {
     if (!newAttributeName.trim() || !newAttributeDisplayName.trim()) return;
@@ -84,7 +83,7 @@ export function ChangeoverMatrixScreen() {
         defaultMinutes: newAttributeDefaultTime,
         sortOrder: attributes.length,
       };
-      await (window as any).electron.invoke("changeover:upsert_attribute", { data });
+      await changeoverIpc.upsertAttribute(data);
       setShowNewAttributeForm(false);
       setNewAttributeName("");
       setNewAttributeDisplayName("");
@@ -99,7 +98,7 @@ export function ChangeoverMatrixScreen() {
 
   const handleDeleteAttribute = async (id: string) => {
     try {
-      await (window as any).electron.invoke("changeover:delete_attribute", { id });
+      await changeoverIpc.deleteAttribute(id);
       if (selectedAttributeId === id) {
         setSelectedAttributeId(null);
         setMatrixEntries([]);
@@ -171,15 +170,13 @@ export function ChangeoverMatrixScreen() {
       setIsSaving(true);
       // Save all matrix entries
       for (const entry of matrixEntries) {
-        await (window as any).electron.invoke("changeover:upsert_entry", {
-          data: {
-            attributeId: entry.attributeId,
-            fromValue: entry.fromValue,
-            toValue: entry.toValue,
-            timeMinutes: entry.timeMinutes,
-            source: entry.source,
-            notes: entry.notes,
-          },
+        await changeoverIpc.upsertEntry({
+          attributeId: entry.attributeId,
+          fromValue: entry.fromValue,
+          toValue: entry.toValue,
+          timeMinutes: entry.timeMinutes,
+          source: entry.source,
+          notes: entry.notes ?? undefined,
         });
       }
       // Reload to get proper IDs
@@ -200,7 +197,7 @@ export function ChangeoverMatrixScreen() {
   }) => {
     if (!selectedAttributeId) return;
 
-    await (window as any).electron.invoke("changeover:import_smed", {
+    await changeoverIpc.importFromSmed({
       attributeId: selectedAttributeId,
       ...data,
     });

@@ -79,20 +79,23 @@ describe('ChangeoverMatrixScreen', () => {
 
     // Default IPC responses
     mockInvoke.mockImplementation((channel: string, args?: any) => {
-      if (channel === 'changeover:get_all_attributes') {
+      if (channel === 'changeovers:get_all_attributes') {
         return Promise.resolve(mockAttributes);
       }
-      if (channel === 'changeover:get_matrix') {
+      if (channel === 'changeovers:get_matrix') {
         return Promise.resolve(mockMatrixEntries);
       }
-      if (channel === 'changeover:upsert_attribute') {
+      if (channel === 'changeovers:upsert_attribute') {
         return Promise.resolve({ id: 'new-attr', ...args?.data });
       }
-      if (channel === 'changeover:delete_attribute') {
+      if (channel === 'changeovers:delete_attribute') {
         return Promise.resolve();
       }
-      if (channel === 'changeover:upsert_entry') {
+      if (channel === 'changeovers:upsert_entry') {
         return Promise.resolve({ id: 'new-entry', ...args?.data });
+      }
+      if (channel === 'changeovers:import_smed') {
+        return Promise.resolve({ id: 'imported-entry', ...args });
       }
       if (channel === 'smed:get_all_studies') {
         return Promise.resolve([]);
@@ -179,7 +182,7 @@ describe('ChangeoverMatrixScreen', () => {
   describe('Empty State', () => {
     it('should show empty state when no attributes exist', async () => {
       mockInvoke.mockImplementation((channel: string) => {
-        if (channel === 'changeover:get_all_attributes') {
+        if (channel === 'changeovers:get_all_attributes') {
           return Promise.resolve([]);
         }
         return Promise.resolve([]);
@@ -195,10 +198,10 @@ describe('ChangeoverMatrixScreen', () => {
 
     it('should show prompt when no matrix values exist', async () => {
       mockInvoke.mockImplementation((channel: string) => {
-        if (channel === 'changeover:get_all_attributes') {
+        if (channel === 'changeovers:get_all_attributes') {
           return Promise.resolve(mockAttributes);
         }
-        if (channel === 'changeover:get_matrix') {
+        if (channel === 'changeovers:get_matrix') {
           return Promise.resolve([]); // No matrix entries
         }
         return Promise.resolve([]);
@@ -281,7 +284,7 @@ describe('ChangeoverMatrixScreen', () => {
       // Should trigger IPC calls to save entries
       await waitFor(() => {
         const upsertCalls = mockInvoke.mock.calls.filter(
-          call => call[0] === 'changeover:upsert_entry'
+          call => call[0] === 'changeovers:upsert_entry'
         );
         expect(upsertCalls.length).toBeGreaterThanOrEqual(0);
       });
@@ -303,7 +306,7 @@ describe('ChangeoverMatrixScreen', () => {
       render(<ChangeoverMatrixScreen />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('changeover:get_all_attributes');
+        expect(mockInvoke).toHaveBeenCalledWith('changeovers:get_all_attributes');
       });
     });
 
@@ -311,7 +314,7 @@ describe('ChangeoverMatrixScreen', () => {
       render(<ChangeoverMatrixScreen />);
 
       await waitFor(() => {
-        expect(mockInvoke).toHaveBeenCalledWith('changeover:get_matrix', {
+        expect(mockInvoke).toHaveBeenCalledWith('changeovers:get_matrix', {
           attributeId: 'attr-1',
         });
       });
@@ -334,7 +337,7 @@ describe('ChangeoverMatrixScreen', () => {
         await user.click(deleteButtons[0]);
 
         await waitFor(() => {
-          expect(mockInvoke).toHaveBeenCalledWith('changeover:delete_attribute', {
+          expect(mockInvoke).toHaveBeenCalledWith('changeovers:delete_attribute', {
             id: expect.any(String),
           });
         });

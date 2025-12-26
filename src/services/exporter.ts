@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { OptimizationResult } from '@/types';
@@ -45,95 +45,148 @@ export async function generateExport(
   }
 }
 
-function generateExcel(
+async function generateExcel(
   result: OptimizationResult,
   sourceRows: Record<string, unknown>[],
   options: ExportOptions
-): ExportResult {
-  const workbook = XLSX.utils.book_new();
+): Promise<ExportResult> {
+  const workbook = new ExcelJS.Workbook();
 
   // Sheet 1: Optimized Sequence
-  const sequenceData = result.sequence.map((order) => {
-    const row: Record<string, any> = {
-      '#': order.sequenceNumber,
-      'Order ID': order.id,
-    };
-    // Add original values
-    Object.entries(order.values).forEach(([key, val]) => {
-      row[key] = val;
-    });
-    // Add changeover info with dual metrics
-    row['Downtime (min)'] = order.downtime;
-    row['Work Time (min)'] = order.workTime;
-    row['Changed Attributes'] = order.changeoverReasons.join(', ') || '—';
-    return row;
+  const sequenceSheet = workbook.addWorksheet('Optimized Sequence');
+
+  // Build headers
+  const sampleOrder = result.sequence[0];
+  const attrKeys = sampleOrder ? Object.keys(sampleOrder.values) : [];
+  const headers = ['#', 'Order ID', ...attrKeys, 'Downtime (min)', 'Work Time (min)', 'Changed Attributes'];
+
+  sequenceSheet.addRow(headers);
+
+  // Style header row
+  const headerRow = sequenceSheet.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFF3F4F6' },
+  };
+
+  // Add data rows
+  result.sequence.forEach((order) => {
+    const row = [
+      order.sequenceNumber,
+      order.id,
+      ...attrKeys.map(k => order.values[k]),
+      order.downtime,
+      order.workTime,
+      order.changeoverReasons.join(', ') || '—',
+    ];
+    sequenceSheet.addRow(row);
   });
 
-  const sequenceSheet = XLSX.utils.json_to_sheet(sequenceData);
-  XLSX.utils.book_append_sheet(workbook, sequenceSheet, 'Optimized Sequence');
+  // Auto-fit columns
+  sequenceSheet.columns.forEach(column => {
+    column.width = 15;
+  });
 
   // Sheet 2: Summary
   if (options.includeSummary) {
+    const summarySheet = workbook.addWorksheet('Optimization Summary');
     const summaryData = [
-      { Metric: 'Total Orders', Value: result.sequence.length },
-      { Metric: '', Value: '' },
-      { Metric: '=== DOWNTIME (Production Impact) ===', Value: '' },
-      { Metric: 'Original Downtime (min)', Value: result.totalDowntimeBefore },
-      { Metric: 'Optimized Downtime (min)', Value: result.totalDowntimeAfter },
-      { Metric: 'Downtime Savings (min)', Value: result.downtimeSavings },
-      { Metric: 'Downtime Reduction (%)', Value: `${result.downtimeSavingsPercent}%` },
-      { Metric: '', Value: '' },
-      { Metric: '=== WORK TIME (Labor Cost) ===', Value: '' },
-      { Metric: 'Original Work Time (min)', Value: result.totalBefore },
-      { Metric: 'Optimized Work Time (min)', Value: result.totalAfter },
-      { Metric: 'Work Time Savings (min)', Value: result.savings },
-      { Metric: 'Work Time Reduction (%)', Value: `${result.savingsPercent}%` },
-      { Metric: '', Value: '' },
-      { Metric: 'Attribute Breakdown:', Value: '' },
-      ...result.attributeStats.map(stat => ({
-        Metric: `  ${stat.column}${stat.parallelGroup !== 'default' ? ` (Group ${stat.parallelGroup})` : ''}`,
-        Value: `${stat.changeoverCount} changes, ${stat.totalTime} min`
-      }))
+      ['Metric', 'Value'],
+      ['Total Orders', result.sequence.length],
+      ['', ''],
+      ['=== DOWNTIME (Production Impact) ===', ''],
+      ['Original Downtime (min)', result.totalDowntimeBefore],
+      ['Optimized Downtime (min)', result.totalDowntimeAfter],
+      ['Downtime Savings (min)', result.downtimeSavings],
+      ['Downtime Reduction (%)', `${result.downtimeSavingsPercent}%`],
+      ['', ''],
+      ['=== WORK TIME (Labor Cost) ===', ''],
+      ['Original Work Time (min)', result.totalBefore],
+      ['Optimized Work Time (min)', result.totalAfter],
+      ['Work Time Savings (min)', result.savings],
+      ['Work Time Reduction (%)', `${result.savingsPercent}%`],
+      ['', ''],
+      ['Attribute Breakdown:', ''],
+      ...result.attributeStats.map(stat => [
+        `  ${stat.column}${stat.parallelGroup !== 'default' ? ` (Group ${stat.parallelGroup})` : ''}`,
+        `${stat.changeoverCount} changes, ${stat.totalTime} min`
+      ])
     ];
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Optimization Summary');
+    summaryData.forEach(row => summarySheet.addRow(row));
+
+    // Style header
+    const sHeaderRow = summarySheet.getRow(1);
+    sHeaderRow.font = { bold: true };
   }
 
   // Sheet 3: Original Data
-  if (options.includeOriginal) {
-    const originalSheet = XLSX.utils.json_to_sheet(sourceRows);
-    XLSX.utils.book_append_sheet(workbook, originalSheet, 'Original Schedule');
+  if (options.includeOriginal && sourceRows.length > 0) {
+    const originalSheet = workbook.addWorksheet('Original Schedule');
+    const origHeaders = Object.keys(sourceRows[0]);
+    originalSheet.addRow(origHeaders);
+
+    const oHeaderRow = originalSheet.getRow(1);
+    oHeaderRow.font = { bold: true };
+
+    sourceRows.forEach(row => {
+      originalSheet.addRow(origHeaders.map(h => row[h]));
+    });
   }
 
-  const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+  // Generate buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+
   return {
-    data: new Uint8Array(buffer),
+    data: new Uint8Array(buffer as ArrayBuffer),
     filename: options.filename || 'optimized-schedule.xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
 }
 
 function generateCSV(result: OptimizationResult): ExportResult {
-  const data = result.sequence.map((order) => {
-    const row: Record<string, any> = {
-      sequence: order.sequenceNumber,
-      order_id: order.id,
-      ...order.values,
-      downtime_min: order.downtime,
-      work_time_min: order.workTime,
-      changed_attributes: order.changeoverReasons.join('; '),
+  if (result.sequence.length === 0) {
+    return {
+      data: '',
+      filename: 'optimized-schedule.csv',
+      mimeType: 'text/csv',
     };
-    return row;
+  }
+
+  const firstOrder = result.sequence[0];
+  const attrKeys = Object.keys(firstOrder.values);
+  const headers = ['sequence', 'order_id', ...attrKeys, 'downtime_min', 'work_time_min', 'changed_attributes'];
+
+  const rows = result.sequence.map(order => {
+    const values = [
+      order.sequenceNumber,
+      order.id,
+      ...attrKeys.map(k => order.values[k]),
+      order.downtime,
+      order.workTime,
+      order.changeoverReasons.join('; '),
+    ];
+    return values.map(v => escapeCSV(String(v))).join(',');
   });
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const csv = XLSX.utils.sheet_to_csv(worksheet);
+  const csv = [headers.join(','), ...rows].join('\n');
 
   return {
     data: csv,
     filename: 'optimized-schedule.csv',
     mimeType: 'text/csv',
   };
+}
+
+/**
+ * Escape a value for CSV output.
+ */
+function escapeCSV(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
 function generateClipboard(result: OptimizationResult): ExportResult {
@@ -169,7 +222,7 @@ async function generatePDF(
 ): Promise<ExportResult> {
   const firstOrder = result.sequence[0];
   const attrKeys = firstOrder ? Object.keys(firstOrder.values) : [];
-  
+
   const docDefinition: any = {
     pageSize: 'A4',
     pageOrientation: 'landscape',

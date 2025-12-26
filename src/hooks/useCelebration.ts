@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   getCelebrationTier,
   getCelebrationConfig,
@@ -46,7 +46,27 @@ export interface UseCelebrationResult {
 export function useCelebration(
   result: OptimizationResult | null
 ): UseCelebrationResult {
-  const [isDismissed, setIsDismissed] = useState(false);
+  // Initialize from session storage
+  const [isDismissed, setIsDismissed] = useState(() => {
+    return sessionStorage.getItem(DISMISSED_KEY) === "true";
+  });
+
+  // Track previous result key to detect changes
+  const prevResultKeyRef = useRef<string | null>(null);
+  const currentResultKey = result
+    ? `${result.downtimeSavingsPercent}-${result.downtimeSavings}`
+    : null;
+
+  // Reset dismissed state when result changes (new optimization)
+  useEffect(() => {
+    if (currentResultKey && currentResultKey !== prevResultKeyRef.current) {
+      prevResultKeyRef.current = currentResultKey;
+      // New result - allow celebration to show again
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsDismissed(false);
+      sessionStorage.removeItem(DISMISSED_KEY);
+    }
+  }, [currentResultKey]);
 
   // Calculate tier from result
   const tier = useMemo<CelebrationTier>(() => {
@@ -62,23 +82,6 @@ export function useCelebration(
     if (!result || tier === "none") return null;
     return getCelebrationConfig(tier, result.downtimeSavingsPercent);
   }, [tier, result]);
-
-  // Check session storage on mount
-  useEffect(() => {
-    const dismissed = sessionStorage.getItem(DISMISSED_KEY);
-    if (dismissed === "true") {
-      setIsDismissed(true);
-    }
-  }, []);
-
-  // Reset dismissed state when result changes (new optimization)
-  useEffect(() => {
-    if (result) {
-      // New result, allow celebration to show again
-      setIsDismissed(false);
-      sessionStorage.removeItem(DISMISSED_KEY);
-    }
-  }, [result?.downtimeSavingsPercent, result?.downtimeSavings]);
 
   const dismiss = useCallback(() => {
     setIsDismissed(true);

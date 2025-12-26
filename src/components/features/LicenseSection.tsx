@@ -26,7 +26,7 @@ interface LicenseSectionProps {
 export function LicenseSection({
   tier,
   license,
-  onActivate,
+  onActivate: _onActivate,
   onDeactivate,
   isValidating,
   setValidating,
@@ -39,28 +39,15 @@ export function LicenseSection({
 
     try {
       setValidating(true);
-      // Mock activation
+      // TODO: Implement real Paddle license validation
+      // For now, license activation is disabled until Paddle integration is complete
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      if (licenseKey.toLowerCase() === "pro-success") {
-        onActivate({
-          key: licenseKey,
-          email: "user@example.com",
-          activatedAt: new Date().toISOString(),
-          expiresAt: null,
-        });
-        toast({
-          title: "Pro Activated",
-          description: "Thank you for supporting ChangeoverOptimizer!",
-        });
-        setLicenseKey("");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Activation Failed",
-          description: "Invalid license key. Use 'pro-success' for testing.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Activation Failed",
+        description: "License activation is not available yet. Please check back soon.",
+      });
     } finally {
       setValidating(false);
     }

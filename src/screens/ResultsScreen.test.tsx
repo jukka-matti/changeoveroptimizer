@@ -147,7 +147,7 @@ describe('ResultsScreen', () => {
       expect(screen.getByText('25 min')).toBeInTheDocument();
 
       expect(screen.getByText('Downtime Saved')).toBeInTheDocument();
-      expect(screen.getByText('-20 min')).toBeInTheDocument();
+      expect(screen.getByText('20 min')).toBeInTheDocument();
       expect(screen.getByText('44% reduction')).toBeInTheDocument();
     });
 
@@ -462,7 +462,7 @@ describe('ResultsScreen', () => {
 
       render(<ResultsScreen />);
 
-      expect(screen.getByText('-0 min')).toBeInTheDocument();
+      expect(screen.getByText('0 min')).toBeInTheDocument();
       expect(screen.getByText('0% reduction')).toBeInTheDocument();
     });
 
