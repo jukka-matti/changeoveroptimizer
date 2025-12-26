@@ -3,8 +3,8 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { OptimizationResult } from '@/types';
 
-// Set up pdfMake fonts
-if (typeof window !== 'undefined') {
+// Set up pdfMake fonts (with null check for browser-only mode)
+if (typeof window !== 'undefined' && (pdfFonts as any)?.pdfMake?.vfs) {
   (pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 }
 
